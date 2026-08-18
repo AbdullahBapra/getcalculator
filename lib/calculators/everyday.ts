@@ -69,12 +69,26 @@ const everyday: CalculatorDefinition[] = [
       let nextBday = new Date(Date.UTC(asOf.getUTCFullYear(), birth.getUTCMonth(), birth.getUTCDate()));
       if (nextBday.getTime() < asOf.getTime()) nextBday = new Date(Date.UTC(asOf.getUTCFullYear() + 1, birth.getUTCMonth(), birth.getUTCDate()));
       const daysToNextBday = Math.round((nextBday.getTime() - asOf.getTime()) / 86400000);
+      const totalMonthsLived = years * 12 + months;
+      const totalWeeksLived = Math.floor(totalDays / 7);
+      const totalHoursLived = totalDays * 24;
       return {
         results: [
           { label: "Age", value: `${years} years, ${months} months, ${days} days`, emphasis: true },
           { label: "Total Days Lived", value: fmtNumber(totalDays, 0) },
           { label: "Days Until Next Birthday", value: fmtNumber(daysToNextBday, 0) },
         ],
+        table: {
+          headers: ["Unit", "Your Age In That Unit"],
+          rows: [
+            ["Years", `${years} yr${years === 1 ? "" : "s"} (+ ${months}mo ${days}d)`],
+            ["Months (approx.)", `${fmtNumber(totalMonthsLived, 0)} months`],
+            ["Weeks", `${fmtNumber(totalWeeksLived, 0)} weeks`],
+            ["Days", `${fmtNumber(totalDays, 0)} days`],
+            ["Hours (approx.)", `${fmtNumber(totalHoursLived, 0)} hours`],
+          ],
+        },
+        chartCaption: `The exact same amount of time — ${fmtNumber(totalDays, 0)} days — counted in different units. Handy for spotting a round-number milestone, like your 10,000th day.`,
       };
     },
     relatedSlugs: ["date-calculator"],
@@ -109,7 +123,16 @@ const everyday: CalculatorDefinition[] = [
         else if (i.unit === "weeks") d.setUTCDate(d.getUTCDate() + amt * 7);
         else if (i.unit === "months") d.setUTCMonth(d.getUTCMonth() + amt);
         else d.setUTCFullYear(d.getUTCFullYear() + amt);
-        return { results: [{ label: "Resulting Date", value: d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" }), emphasis: true }] };
+        const resultLabel = d.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
+        const startLabel = start.toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
+        return {
+          results: [{ label: "Resulting Date", value: resultLabel, emphasis: true }],
+          steps: [
+            `Starting date: ${startLabel}`,
+            `${i.direction === "subtract" ? "Subtract" : "Add"} ${Math.abs(n(i.amount, 0))} ${i.unit} ${i.direction === "subtract" ? "before" : "after"} that date.`,
+            `Result: ${resultLabel}`,
+          ],
+        };
       }
       const end = parseDateUTC(i.endDate);
       if (!end) return { results: [], error: "Enter a valid end date." };
@@ -117,12 +140,24 @@ const everyday: CalculatorDefinition[] = [
       const earlier = totalDays >= 0 ? start : end;
       const later = totalDays >= 0 ? end : start;
       const { years, months, days } = monthDiff(earlier, later);
+      const absDays = Math.abs(totalDays);
+      const totalMonthsSpan = years * 12 + months;
       return {
         results: [
-          { label: "Total Days", value: fmtNumber(Math.abs(totalDays), 0), emphasis: true },
+          { label: "Total Days", value: fmtNumber(absDays, 0), emphasis: true },
           { label: "Breakdown", value: `${years} years, ${months} months, ${days} days` },
-          { label: "Total Weeks", value: fmtNumber(Math.abs(totalDays) / 7, 1) },
+          { label: "Total Weeks", value: fmtNumber(absDays / 7, 1) },
         ],
+        table: {
+          headers: ["Unit", "Span"],
+          rows: [
+            ["Years + Months + Days", `${years}y ${months}m ${days}d`],
+            ["Months (approx.)", `${fmtNumber(totalMonthsSpan, 0)} months`],
+            ["Weeks", `${fmtNumber(absDays / 7, 1)} weeks`],
+            ["Days", `${fmtNumber(absDays, 0)} days`],
+          ],
+        },
+        chartCaption: `The same span between these two dates, expressed in different units — pick whichever is easiest to plan around.`,
       };
     },
     relatedSlugs: ["age-calculator", "day-of-the-week-calculator"],
@@ -147,12 +182,32 @@ const everyday: CalculatorDefinition[] = [
       if (diff < 0) diff += 24 * 60;
       const hours = Math.floor(diff / 60);
       const minutes = diff % 60;
+      const decimalHours = diff / 60;
+      let lengthCategory = "Quick";
+      if (decimalHours >= 12) lengthCategory = "Extended / overnight";
+      else if (decimalHours >= 8) lengthCategory = "Full day";
+      else if (decimalHours >= 4) lengthCategory = "Half day";
+      else if (decimalHours >= 1) lengthCategory = "Short";
       return {
         results: [
           { label: "Duration", value: `${hours}h ${minutes}m`, emphasis: true },
           { label: "Total Minutes", value: fmtNumber(diff, 0) },
           { label: "Decimal Hours", value: fmtNumber(diff / 60, 2) },
         ],
+        gauge: {
+          value: decimalHours,
+          min: 0,
+          max: 24,
+          valueLabel: `${hours}h ${minutes}m`,
+          zones: [
+            { label: "Quick (<1h)", to: 1, barClass: "bg-sky-400 dark:bg-sky-500", textClass: "text-sky-600 dark:text-sky-400" },
+            { label: "Short (1-4h)", to: 4, barClass: "bg-teal-500 dark:bg-teal-400", textClass: "text-teal-600 dark:text-teal-400" },
+            { label: "Half day (4-8h)", to: 8, barClass: "bg-amber-400 dark:bg-amber-500", textClass: "text-amber-600 dark:text-amber-400" },
+            { label: "Full day (8-12h)", to: 12, barClass: "bg-orange-400 dark:bg-orange-500", textClass: "text-orange-600 dark:text-orange-400" },
+            { label: "Extended / overnight (12-24h)", to: 24, barClass: "bg-violet-400 dark:bg-violet-500", textClass: "text-violet-600 dark:text-violet-400" },
+          ],
+        },
+        chartCaption: `${hours}h ${minutes}m falls in the "${lengthCategory}" range on a 24-hour scale.`,
       };
     },
     relatedSlugs: ["hours-calculator"],
@@ -190,7 +245,17 @@ const everyday: CalculatorDefinition[] = [
         { label: "Overtime Hours", value: fmtNumber(overtime, 2) },
       ];
       if (rate > 0) results.push({ label: "Estimated Gross Pay", value: `$${fmtNumber(pay, 2)}`, emphasis: true });
-      return { results };
+      return {
+        results,
+        breakdown: [
+          { label: "Regular Hours", value: regular, displayValue: `${fmtNumber(regular, 2)}h` },
+          { label: "Overtime Hours", value: overtime, displayValue: `${fmtNumber(overtime, 2)}h` },
+        ],
+        chartCaption:
+          overtime > 0
+            ? `Overtime makes up ${fmtNumber((overtime / Math.max(workedHours, 0.0001)) * 100, 0)}% of the hours worked${rate > 0 ? `, and pays 1.5× the rate — worth $${fmtNumber(overtime * rate * 1.5, 2)} of the total.` : "."}`
+            : `All ${fmtNumber(workedHours, 2)}h worked stayed within the ${fmtNumber(threshold, 0)}h regular-time threshold — no overtime kicked in.`,
+      };
     },
     relatedSlugs: ["time-duration-calculator"],
   },
@@ -207,18 +272,27 @@ const everyday: CalculatorDefinition[] = [
     calculate: (i) => {
       const pairs = (i.courses || "").split(",").map((s) => s.trim()).filter(Boolean);
       let totalCredits = 0, totalPoints = 0;
+      const courses: { credits: number; grade: number }[] = [];
       for (const p of pairs) {
         const [c, g] = p.split(":").map((v) => Number(v.trim()));
         if (!Number.isFinite(c) || !Number.isFinite(g)) continue;
         totalCredits += c;
         totalPoints += c * g;
+        courses.push({ credits: c, grade: g });
       }
       if (totalCredits === 0) return { results: [], error: "Enter at least one valid credits:gradePoint pair, e.g. 3:4.0, 4:3.3" };
+      const gpa = totalPoints / totalCredits;
       return {
         results: [
-          { label: "GPA", value: fmtNumber(totalPoints / totalCredits, 3), emphasis: true },
+          { label: "GPA", value: fmtNumber(gpa, 3), emphasis: true },
           { label: "Total Credits", value: fmtNumber(totalCredits, 0) },
         ],
+        breakdown: courses.map((c, idx) => ({
+          label: `Course ${idx + 1} (${fmtNumber(c.credits, 0)} cr, ${fmtNumber(c.grade, 1)} GPA)`,
+          value: c.credits * c.grade,
+          displayValue: `${fmtNumber(c.credits * c.grade, 2)} pts`,
+        })),
+        chartCaption: `Each course contributes credits × grade point to the ${fmtNumber(totalPoints, 2)} total quality points behind your ${fmtNumber(gpa, 3)} GPA — bigger, higher-graded courses pull the average harder.`,
       };
     },
     relatedSlugs: ["grade-calculator"],
@@ -236,11 +310,13 @@ const everyday: CalculatorDefinition[] = [
     calculate: (i) => {
       const pairs = (i.items || "").split(",").map((s) => s.trim()).filter(Boolean);
       let totalWeight = 0, weightedSum = 0;
+      const items: { score: number; weight: number }[] = [];
       for (const p of pairs) {
         const [score, weight] = p.split(":").map((v) => Number(v.trim()));
         if (!Number.isFinite(score) || !Number.isFinite(weight)) continue;
         totalWeight += weight;
         weightedSum += score * weight;
+        items.push({ score, weight });
       }
       if (totalWeight === 0) return { results: [], error: "Enter at least one valid score:weight pair, e.g. 90:20, 85:30" };
       const grade = weightedSum / totalWeight;
@@ -252,6 +328,12 @@ const everyday: CalculatorDefinition[] = [
           { label: "Letter Grade", value: letter, emphasis: true },
         ],
         notes: totalWeight !== 100 ? [`Your weights add up to ${fmtNumber(totalWeight, 1)}%, not 100% — the grade is still calculated as a weighted average.`] : undefined,
+        breakdown: items.map((it, idx) => ({
+          label: `Item ${idx + 1} (${fmtNumber(it.score, 0)}% @ ${fmtNumber(it.weight, 0)}% weight)`,
+          value: (it.score * it.weight) / totalWeight,
+          displayValue: `${fmtNumber((it.score * it.weight) / totalWeight, 2)}%`,
+        })),
+        chartCaption: `Each item's score, scaled by its share of the total weight, adds up to your ${fmtNumber(grade, 2)}% final grade — the biggest slices are whichever items carry the most weight, not necessarily the highest score.`,
       };
     },
     relatedSlugs: ["gpa-calculator"],
@@ -282,12 +364,29 @@ const everyday: CalculatorDefinition[] = [
       let pw = "";
       for (let k = 0; k < length; k++) pw += pool[randomInt(0, pool.length - 1)];
       const entropyBits = Math.round(length * Math.log2(pool.length));
+      let strength = "Very Weak";
+      if (entropyBits >= 128) strength = "Very Strong"; else if (entropyBits >= 60) strength = "Strong"; else if (entropyBits >= 36) strength = "Reasonable"; else if (entropyBits >= 28) strength = "Weak";
+      const gaugeMax = Math.max(160, entropyBits);
       return {
         results: [
           { label: "Password", value: pw, emphasis: true },
           { label: "Estimated Entropy", value: `${entropyBits} bits` },
         ],
         notes: ["Generated fresh each time you calculate — nothing is stored or sent anywhere. Use a password manager to save it."],
+        gauge: {
+          value: entropyBits,
+          min: 0,
+          max: gaugeMax,
+          valueLabel: `${entropyBits} bits`,
+          zones: [
+            { label: "Very Weak", to: 28, barClass: "bg-red-400 dark:bg-red-500", textClass: "text-red-600 dark:text-red-400" },
+            { label: "Weak", to: 36, barClass: "bg-amber-400 dark:bg-amber-500", textClass: "text-amber-600 dark:text-amber-400" },
+            { label: "Reasonable", to: 60, barClass: "bg-yellow-400 dark:bg-yellow-500", textClass: "text-yellow-600 dark:text-yellow-400" },
+            { label: "Strong", to: 128, barClass: "bg-teal-500 dark:bg-teal-400", textClass: "text-teal-600 dark:text-teal-400" },
+            { label: "Very Strong", to: gaugeMax, barClass: "bg-emerald-500 dark:bg-emerald-400", textClass: "text-emerald-600 dark:text-emerald-400" },
+          ],
+        },
+        chartCaption: `${entropyBits} bits of entropy rates as "${strength}" — each extra bit doubles the number of guesses an attacker would need to try.`,
       };
     },
     relatedSlugs: ["random-number-generator"],
@@ -322,7 +421,41 @@ const everyday: CalculatorDefinition[] = [
       } else {
         for (let k = 0; k < count; k++) out.push(randomInt(min, max));
       }
-      return { results: [{ label: count === 1 ? "Random Number" : "Random Numbers", value: out.join(", "), emphasis: true }] };
+      const shown = out.slice(0, 30);
+      return {
+        results: [{ label: count === 1 ? "Random Number" : "Random Numbers", value: out.join(", "), emphasis: true }],
+        steps: [
+          `Range: ${min} to ${max} inclusive — ${fmtNumber(range, 0)} possible whole number${range === 1 ? "" : "s"}.`,
+          `Each draw picks uniformly at random, so on a single draw every number in range has about a ${fmtNumber(100 / range, range > 1000 ? 4 : 2)}% chance of coming up.`,
+          i.unique === "no"
+            ? `Duplicates are allowed, so ${count} independent draws were made — the same number can appear more than once.`
+            : `Duplicates are excluded, so once a number is drawn it's removed from the pool before the next draw.`,
+        ],
+        // A single draw is a position on the range (gauge); several draws are a sequence
+        // worth seeing in order (bar-per-draw) — different shapes get different charts.
+        ...(count === 1
+          ? {
+              gauge: {
+                value: out[0],
+                min,
+                max,
+                zones: [
+                  { label: "Low", to: min + range / 3, barClass: "bg-sky-300 dark:bg-sky-700", textClass: "text-sky-700 dark:text-sky-400" },
+                  { label: "Mid", to: min + (2 * range) / 3, barClass: "bg-teal-400 dark:bg-teal-600", textClass: "text-teal-700 dark:text-teal-400" },
+                  { label: "High", to: max, barClass: "bg-amber-400 dark:bg-amber-600", textClass: "text-amber-700 dark:text-amber-400" },
+                ],
+                valueLabel: `${out[0]}`,
+              },
+              chartCaption: `${out[0]} landed in the ${out[0] < min + range / 3 ? "low" : out[0] < min + (2 * range) / 3 ? "middle" : "high"} third of the ${min}–${max} range.`,
+            }
+          : {
+              growthSeries: shown.map((v, idx) => ({ label: `#${idx + 1}`, value: v - min + 1, displayValue: `${v}` })),
+              chartCaption:
+                shown.length < out.length
+                  ? `Showing the first ${shown.length} of ${out.length} draws, in the order they were generated.`
+                  : `All ${out.length} draws, in the order they were generated.`,
+            }),
+      };
     },
     relatedSlugs: ["dice-roller", "password-generator"],
   },
@@ -341,11 +474,24 @@ const everyday: CalculatorDefinition[] = [
       const numDice = Math.max(1, Math.round(n(i.numDice, 2)));
       const sides = Math.max(2, Math.round(n(i.sides, 6)));
       const rolls = Array.from({ length: numDice }, () => randomInt(1, sides));
+      const total = rolls.reduce((a, b) => a + b, 0);
+      const expectedAvg = numDice * ((sides + 1) / 2);
+      const minPossible = numDice * 1;
+      const maxPossible = numDice * sides;
       return {
         results: [
           { label: "Rolls", value: rolls.join(", "), emphasis: true },
-          { label: "Total", value: fmtNumber(rolls.reduce((a, b) => a + b, 0), 0), emphasis: true },
+          { label: "Total", value: fmtNumber(total, 0), emphasis: true },
         ],
+        notes: [`With ${numDice} die${numDice === 1 ? "" : "ce"} of ${sides} sides, totals can range from ${minPossible} to ${maxPossible}, averaging ${fmtNumber(expectedAvg, 1)} over many rolls.`],
+        compare: [
+          { label: "This Roll", value: total, displayValue: fmtNumber(total, 0), highlight: true },
+          { label: "Statistical Average", value: expectedAvg, displayValue: fmtNumber(expectedAvg, 1) },
+        ],
+        chartCaption:
+          total === expectedAvg
+            ? `This roll landed exactly on the long-run average of ${fmtNumber(expectedAvg, 1)}.`
+            : `This roll came in ${fmtNumber(Math.abs(total - expectedAvg), 1)} ${total > expectedAvg ? "above" : "below"} the long-run average of ${fmtNumber(expectedAvg, 1)} for ${numDice}d${sides}.`,
       };
     },
     relatedSlugs: ["random-number-generator"],
@@ -364,9 +510,24 @@ const everyday: CalculatorDefinition[] = [
     calculate: (i) => {
       if (!i.name1 || !i.name2) return { results: [], error: "Enter both names." };
       const score = hashNames(i.name1, i.name2);
+      let zone = "Just Friends";
+      if (score >= 80) zone = "Soulmates"; else if (score >= 60) zone = "Good Match"; else if (score >= 40) zone = "Some Spark";
       return {
         results: [{ label: `${i.name1} + ${i.name2}`, value: `${score}%`, emphasis: true }],
         notes: ["Just for fun — not a real compatibility measure! The same two names always give the same score."],
+        gauge: {
+          value: score,
+          min: 0,
+          max: 100,
+          valueLabel: `${score}%`,
+          zones: [
+            { label: "Just Friends", to: 40, barClass: "bg-sky-400 dark:bg-sky-500", textClass: "text-sky-600 dark:text-sky-400" },
+            { label: "Some Spark", to: 60, barClass: "bg-amber-400 dark:bg-amber-500", textClass: "text-amber-600 dark:text-amber-400" },
+            { label: "Good Match", to: 80, barClass: "bg-pink-400 dark:bg-pink-500", textClass: "text-pink-600 dark:text-pink-400" },
+            { label: "Soulmates", to: 100, barClass: "bg-rose-500 dark:bg-rose-400", textClass: "text-rose-600 dark:text-rose-400" },
+          ],
+        },
+        chartCaption: `${i.name1} + ${i.name2} lands in the "${zone}" zone at ${score}% — purely for laughs, so take it exactly as seriously as it deserves.`,
       };
     },
     relatedSlugs: [],
@@ -395,6 +556,8 @@ const everyday: CalculatorDefinition[] = [
       const toIp = (v: number) => [(v >>> 24) & 255, (v >>> 16) & 255, (v >>> 8) & 255, v & 255].join(".");
       const totalHosts = Math.pow(2, 32 - cidr);
       const usable = cidr >= 31 ? totalHosts : Math.max(0, totalHosts - 2);
+      let sizeCategory = "Point-to-point / single host";
+      if (cidr <= 7) sizeCategory = "Massive (ISP-scale)"; else if (cidr <= 15) sizeCategory = "Large enterprise"; else if (cidr <= 23) sizeCategory = "Medium network"; else if (cidr <= 29) sizeCategory = "Small LAN";
       return {
         results: [
           { label: "Network Address", value: toIp(networkInt), emphasis: true },
@@ -403,6 +566,20 @@ const everyday: CalculatorDefinition[] = [
           { label: "Usable Host Range", value: cidr >= 31 ? "N/A" : `${toIp(networkInt + 1)} – ${toIp(broadcastInt - 1)}` },
           { label: "Usable Hosts", value: fmtNumber(usable, 0) },
         ],
+        gauge: {
+          value: cidr,
+          min: 0,
+          max: 32,
+          valueLabel: `/${cidr}`,
+          zones: [
+            { label: "Massive (ISP-scale)", to: 7, barClass: "bg-violet-400 dark:bg-violet-500", textClass: "text-violet-600 dark:text-violet-400" },
+            { label: "Large enterprise", to: 15, barClass: "bg-sky-400 dark:bg-sky-500", textClass: "text-sky-600 dark:text-sky-400" },
+            { label: "Medium network", to: 23, barClass: "bg-teal-500 dark:bg-teal-400", textClass: "text-teal-600 dark:text-teal-400" },
+            { label: "Small LAN", to: 29, barClass: "bg-amber-400 dark:bg-amber-500", textClass: "text-amber-600 dark:text-amber-400" },
+            { label: "Point-to-point / single host", to: 32, barClass: "bg-orange-400 dark:bg-orange-500", textClass: "text-orange-600 dark:text-orange-400" },
+          ],
+        },
+        chartCaption: `A /${cidr} network provides ${fmtNumber(usable, 0)} usable host address${usable === 1 ? "" : "es"} — that puts it in the "${sizeCategory}" range of subnet sizes.`,
       };
     },
     relatedSlugs: [],
@@ -419,7 +596,34 @@ const everyday: CalculatorDefinition[] = [
       const d = parseDateUTC(i.date);
       if (!d) return { results: [], error: "Enter a valid date." };
       const weekday = d.toLocaleDateString("en-US", { weekday: "long", timeZone: "UTC" });
-      return { results: [{ label: "Day of the Week", value: weekday, emphasis: true }] };
+      const year = d.getUTCFullYear();
+      const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+      const isoDayNum = d.getUTCDay() === 0 ? 7 : d.getUTCDay();
+      const startOfYear = Date.UTC(year, 0, 1);
+      const dayOfYear = Math.floor((d.getTime() - startOfYear) / 86400000) + 1;
+      return {
+        results: [{ label: "Day of the Week", value: weekday, emphasis: true }],
+        steps: [
+          `${weekday} is day ${isoDayNum} of the ISO week (Monday = 1 … Sunday = 7).`,
+          `It's day ${dayOfYear} of ${isLeap ? 366 : 365} in ${year}, which is${isLeap ? "" : " not"} a leap year.`,
+        ],
+        notes: ["Calculated using the standard Gregorian calendar, so it's exact for any real-world date and is a mathematical projection for dates before Gregorian adoption in 1582."],
+        // Day-of-year is inherently "where does this fall across the year" — a gauge
+        // with the four quarters as zones turns that into something you can see at a glance.
+        gauge: {
+          value: dayOfYear,
+          min: 1,
+          max: isLeap ? 366 : 365,
+          zones: [
+            { label: "Q1", to: isLeap ? 91 : 90, barClass: "bg-sky-300 dark:bg-sky-700", textClass: "text-sky-700 dark:text-sky-400" },
+            { label: "Q2", to: isLeap ? 182 : 181, barClass: "bg-teal-400 dark:bg-teal-600", textClass: "text-teal-700 dark:text-teal-400" },
+            { label: "Q3", to: isLeap ? 274 : 273, barClass: "bg-amber-400 dark:bg-amber-600", textClass: "text-amber-700 dark:text-amber-400" },
+            { label: "Q4", to: isLeap ? 366 : 365, barClass: "bg-violet-400 dark:bg-violet-600", textClass: "text-violet-700 dark:text-violet-400" },
+          ],
+          valueLabel: `Day ${dayOfYear}`,
+        },
+        chartCaption: `${weekday}, ${year} is day ${dayOfYear} of ${isLeap ? 366 : 365} — about ${fmtNumber((dayOfYear / (isLeap ? 366 : 365)) * 100, 0)}% of the way through the year.`,
+      };
     },
     relatedSlugs: ["date-calculator"],
   },

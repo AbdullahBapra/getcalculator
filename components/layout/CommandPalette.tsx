@@ -23,8 +23,18 @@ export default function CommandPalette() {
         setOpen(false);
       }
     }
+    // The mobile bottom tab bar's Search button has no keyboard shortcut to press, so
+    // it opens this same palette via a plain window event instead — keeps this
+    // component the single source of truth for the open state, no prop drilling.
+    function onExternalOpen() {
+      setOpen(true);
+    }
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    window.addEventListener("gc:open-search", onExternalOpen);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      window.removeEventListener("gc:open-search", onExternalOpen);
+    };
   }, []);
 
   useEffect(() => {

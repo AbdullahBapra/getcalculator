@@ -1,6 +1,37 @@
 import type { CalculatorDefinition } from "./types";
 import { n, fmtCurrency, fmtNumber, fmtPercent } from "../format";
-import { monthlyPayment, remainingBalance, solveMaxByBisection, payoffCalc, payoffMonths } from "./finance-helpers";
+import { monthlyPayment, remainingBalance, solveMaxByBisection, payoffCalc, payoffMonths, loanBreakdown } from "./finance-helpers";
+
+/** Sample amortization schedule rows (year, cumulative principal paid, cumulative interest
+ *  paid, remaining balance), thinned to every `stepYears` years plus the final year — the
+ *  data behind the amortization table, so we don't dump 360 monthly rows on the user. */
+function amortizationScheduleSample(principal: number, monthlyRate: number, payment: number, stepYears = 5, maxMonths = 600): string[][] {
+  const rows: string[][] = [];
+  let balance = principal;
+  let cumPrincipal = 0;
+  let cumInterest = 0;
+  let month = 0;
+  let lastYearShown = 0;
+  while (balance > 0.005 && month < maxMonths) {
+    const interest = balance * monthlyRate;
+    let principalPaid = payment - interest;
+    if (principalPaid > balance) principalPaid = balance;
+    balance = Math.max(0, balance - principalPaid);
+    cumPrincipal += principalPaid;
+    cumInterest += interest;
+    month++;
+    const isYearEnd = month % 12 === 0;
+    const isFinal = balance <= 0.005 || month >= maxMonths;
+    if (isYearEnd || isFinal) {
+      const year = Math.ceil(month / 12);
+      if (year !== lastYearShown && (year % stepYears === 0 || isFinal)) {
+        rows.push([`Year ${year}`, fmtCurrency(cumPrincipal), fmtCurrency(cumInterest), fmtCurrency(balance)]);
+        lastYearShown = year;
+      }
+    }
+  }
+  return rows;
+}
 
 const financialLoans: CalculatorDefinition[] = [
   {
@@ -31,13 +62,19 @@ const financialLoans: CalculatorDefinition[] = [
         down,
         down + 5000000
       );
+      const loanAmount = Math.max(0, price - down);
       return {
         results: [
           { label: "Max Affordable Home Price", value: fmtCurrency(price), emphasis: true },
           { label: "Max Monthly Payment (PITI budget)", value: fmtCurrency(maxMonthly) },
-          { label: "Loan Amount", value: fmtCurrency(Math.max(0, price - down)) },
+          { label: "Loan Amount", value: fmtCurrency(loanAmount) },
         ],
         notes: [`Assumes property tax + insurance ≈ ${fmtNumber(n(i.taxInsPercent))}% of home price per year. Lenders' exact DTI rules vary.`],
+        breakdown: [
+          { label: "Down Payment", value: down, displayValue: fmtCurrency(down) },
+          { label: "Loan Amount", value: loanAmount, displayValue: fmtCurrency(loanAmount) },
+        ],
+        chartCaption: `Your income and debts support a home up to ${fmtCurrency(price)} — ${fmtCurrency(down)} of that is your down payment, the rest is financed.`,
       };
     },
     relatedSlugs: ["mortgage-calculator", "debt-ratio-calculator"],
@@ -70,6 +107,14 @@ const financialLoans: CalculatorDefinition[] = [
           { label: "Breakeven on Closing Costs", value: Number.isFinite(breakeven) ? `${fmtNumber(breakeven, 1)} months` : "Never (no savings)" },
         ],
         steps: [`Current payment ${fmtCurrency(currentPmt)} − new payment ${fmtCurrency(newPmt)} = ${fmtCurrency(savings)}/mo saved`],
+        compare: [
+          { label: "Current Payment", value: currentPmt, displayValue: fmtCurrency(currentPmt) },
+          { label: "New Payment", value: newPmt, displayValue: fmtCurrency(newPmt), highlight: newPmt < currentPmt },
+        ],
+        chartCaption:
+          savings >= 0
+            ? `Refinancing drops your payment from ${fmtCurrency(currentPmt)} to ${fmtCurrency(newPmt)} — saving ${fmtCurrency(savings)}/mo.`
+            : `This offer raises your payment from ${fmtCurrency(currentPmt)} to ${fmtCurrency(newPmt)} — ${fmtCurrency(-savings)}/mo more.`,
       };
     },
     relatedSlugs: ["mortgage-calculator", "mortgage-payoff-calculator"],
@@ -115,6 +160,11 @@ const financialLoans: CalculatorDefinition[] = [
           { label: "Home Equity Built", value: fmtCurrency(equity) },
         ],
         notes: ["A simplified comparison — ignores rent growth, investment returns on the money not tied up in a down payment, and selling costs."],
+        compare: [
+          { label: "Net Cost of Buying", value: netBuyCost, displayValue: fmtCurrency(netBuyCost), highlight: netBuyCost < rentCost },
+          { label: "Cost of Renting", value: rentCost, displayValue: fmtCurrency(rentCost), highlight: rentCost < netBuyCost },
+        ],
+        chartCaption: `Over ${years} years, ${netBuyCost < rentCost ? "buying" : "renting"} comes out ahead by ${fmtCurrency(Math.abs(rentCost - netBuyCost))}.`,
       };
     },
     relatedSlugs: ["mortgage-calculator", "rent-calculator"],
@@ -141,6 +191,11 @@ const financialLoans: CalculatorDefinition[] = [
           { label: "Loan Amount", value: fmtCurrency(loan) },
         ],
         notes: pct < 20 ? ["Down payments under 20% typically require private mortgage insurance (PMI) on conventional loans."] : undefined,
+        breakdown: [
+          { label: "Down Payment", value: down, displayValue: fmtCurrency(down) },
+          { label: "Loan Amount", value: loan, displayValue: fmtCurrency(loan) },
+        ],
+        chartCaption: `You're financing ${fmtNumber(100 - pct, 0)}% of the price — putting ${fmtCurrency(down)} down on a ${fmtCurrency(price)} home.`,
       };
     },
     relatedSlugs: ["mortgage-calculator", "house-affordability-calculator"],
@@ -175,6 +230,11 @@ const financialLoans: CalculatorDefinition[] = [
           { label: "Total Monthly Payment", value: fmtCurrency(pi + monthlyMip), emphasis: true },
           { label: "Upfront MIP (financed)", value: fmtCurrency(upfrontMip) },
         ],
+        breakdown: [
+          { label: "Principal & Interest", value: pi, displayValue: fmtCurrency(pi) },
+          { label: "Monthly MIP", value: monthlyMip, displayValue: fmtCurrency(monthlyMip) },
+        ],
+        chartCaption: `FHA's mortgage insurance premium adds ${fmtCurrency(monthlyMip)} to every payment — on top of the ${fmtCurrency(upfrontMip)} upfront MIP already rolled into your loan.`,
       };
     },
     relatedSlugs: ["mortgage-calculator", "va-mortgage-calculator"],
@@ -204,6 +264,11 @@ const financialLoans: CalculatorDefinition[] = [
           { label: "VA Funding Fee (financed)", value: fmtCurrency(fundingFee) },
           { label: "Total Loan Amount", value: fmtCurrency(totalLoan) },
         ],
+        breakdown: [
+          { label: "Base Loan Amount", value: loanAmount, displayValue: fmtCurrency(loanAmount) },
+          { label: "VA Funding Fee", value: fundingFee, displayValue: fmtCurrency(fundingFee) },
+        ],
+        chartCaption: `Rolling the funding fee into the loan means you're financing ${fmtCurrency(fundingFee)} extra — ${fmtNumber((fundingFee / totalLoan) * 100, 1)}% of your total loan is fee, not home.`,
       };
     },
     relatedSlugs: ["fha-loan-calculator", "mortgage-calculator"],
@@ -232,6 +297,14 @@ const financialLoans: CalculatorDefinition[] = [
           { label: "Monthly Payment", value: fmtCurrency(pmt), emphasis: true },
         ],
         notes: n(i.loanAmount) > availableEquity ? ["Your requested loan amount exceeds the available equity at this lender's max LTV."] : undefined,
+        compare: [
+          { label: "Available Equity", value: availableEquity, displayValue: fmtCurrency(availableEquity) },
+          { label: "Requested Loan Amount", value: n(i.loanAmount), displayValue: fmtCurrency(n(i.loanAmount)), highlight: n(i.loanAmount) <= availableEquity },
+        ],
+        chartCaption:
+          n(i.loanAmount) <= availableEquity
+            ? `Your ${fmtCurrency(n(i.loanAmount))} request fits comfortably within the ${fmtCurrency(availableEquity)} of equity available at this lender's max LTV.`
+            : `Your ${fmtCurrency(n(i.loanAmount))} request exceeds the ${fmtCurrency(availableEquity)} of available equity by ${fmtCurrency(n(i.loanAmount) - availableEquity)}.`,
       };
     },
     relatedSlugs: ["heloc-calculator"],
@@ -259,6 +332,14 @@ const financialLoans: CalculatorDefinition[] = [
           { label: "Interest-Only Payment (draw period)", value: fmtCurrency(interestOnly), emphasis: true },
         ],
         notes: ["HELOC rates are variable — this payment will change if the rate changes. Repayment-period payments are higher once principal is included."],
+        compare: [
+          { label: "Available Credit Line", value: availableCredit, displayValue: fmtCurrency(availableCredit) },
+          { label: "Amount You Plan to Draw", value: n(i.drawAmount), displayValue: fmtCurrency(n(i.drawAmount)), highlight: n(i.drawAmount) <= availableCredit },
+        ],
+        chartCaption:
+          n(i.drawAmount) <= availableCredit
+            ? `You're planning to draw ${fmtCurrency(n(i.drawAmount))} of the ${fmtCurrency(availableCredit)} credit line available to you.`
+            : `Your planned draw of ${fmtCurrency(n(i.drawAmount))} exceeds the ${fmtCurrency(availableCredit)} credit line available at this lender's max CLTV.`,
       };
     },
     relatedSlugs: ["home-equity-loan-calculator"],
@@ -296,6 +377,12 @@ const financialLoans: CalculatorDefinition[] = [
           { label: "Cash-on-Cash Return", value: fmtPercent(cashOnCash), emphasis: true },
           { label: "Monthly P&I", value: fmtCurrency(pi) },
         ],
+        breakdown: [
+          { label: "Operating Expenses", value: n(i.monthlyExpenses), displayValue: fmtCurrency(n(i.monthlyExpenses)) },
+          { label: "Mortgage P&I", value: pi, displayValue: fmtCurrency(pi) },
+          { label: "Net Cash Flow", value: Math.max(0, cashFlow), displayValue: fmtCurrency(cashFlow) },
+        ],
+        chartCaption: `Of the ${fmtCurrency(effectiveRent)}/mo in expected rent (after vacancy), ${fmtCurrency(n(i.monthlyExpenses))} covers expenses and ${fmtCurrency(pi)} covers the mortgage — leaving ${fmtCurrency(cashFlow)} in cash flow.`,
       };
     },
     relatedSlugs: ["mortgage-calculator", "roi-calculator"],
@@ -318,6 +405,7 @@ const financialLoans: CalculatorDefinition[] = [
       const fee = principal * (n(i.originationFeePercent) / 100);
       const pmt = monthlyPayment(principal, n(i.ratePercent) / 100 / 12, n(i.termMonths, 36));
       const netDisbursed = principal - fee;
+      const totalInterest = pmt * n(i.termMonths, 36) - principal;
       return {
         results: [
           { label: "Monthly Payment", value: fmtCurrency(pmt), emphasis: true },
@@ -325,6 +413,7 @@ const financialLoans: CalculatorDefinition[] = [
           { label: "You Receive", value: fmtCurrency(netDisbursed) },
           { label: "Total Cost of Loan", value: fmtCurrency(pmt * n(i.termMonths, 36)) },
         ],
+        ...loanBreakdown(principal, totalInterest, { label: "Origination Fee", value: fee }),
       };
     },
     relatedSlugs: ["loan-calculator", "business-loan-calculator"],
@@ -345,11 +434,13 @@ const financialLoans: CalculatorDefinition[] = [
     calculate: (i) => {
       const principal = Math.max(0, n(i.boatPrice) - n(i.downPayment));
       const pmt = monthlyPayment(principal, n(i.ratePercent) / 100 / 12, n(i.termMonths, 120));
+      const totalInterest = pmt * n(i.termMonths, 120) - principal;
       return {
         results: [
           { label: "Monthly Payment", value: fmtCurrency(pmt), emphasis: true },
-          { label: "Total Interest", value: fmtCurrency(pmt * n(i.termMonths, 120) - principal) },
+          { label: "Total Interest", value: fmtCurrency(totalInterest) },
         ],
+        ...loanBreakdown(principal, totalInterest),
       };
     },
     relatedSlugs: ["auto-loan-calculator", "loan-calculator"],
@@ -383,6 +474,11 @@ const financialLoans: CalculatorDefinition[] = [
           { label: "Residual Value", value: fmtCurrency(residual) },
         ],
         notes: [`Money factor ≈ APR ÷ 2400 = ${fmtNumber(moneyFactor, 5)}`],
+        breakdown: [
+          { label: "Depreciation", value: depreciationFee, displayValue: fmtCurrency(depreciationFee) },
+          { label: "Finance Charge", value: financeFee, displayValue: fmtCurrency(financeFee) },
+        ],
+        chartCaption: `${fmtNumber((financeFee / Math.max(1, payment)) * 100, 0)}% of every lease payment is pure finance charge — money you'd skip entirely by paying cash.`,
       };
     },
     relatedSlugs: ["auto-loan-calculator"],
@@ -404,12 +500,14 @@ const financialLoans: CalculatorDefinition[] = [
       const principal = n(i.principal);
       const fee = principal * (n(i.originationFeePercent) / 100);
       const pmt = monthlyPayment(principal, n(i.ratePercent) / 100 / 12, n(i.termMonths, 60));
+      const totalInterest = pmt * n(i.termMonths, 60) - principal;
       return {
         results: [
           { label: "Monthly Payment", value: fmtCurrency(pmt), emphasis: true },
           { label: "Origination Fee", value: fmtCurrency(fee) },
           { label: "Total Cost of Loan", value: fmtCurrency(pmt * n(i.termMonths, 60) + fee) },
         ],
+        ...loanBreakdown(principal, totalInterest, { label: "Origination Fee", value: fee }),
       };
     },
     relatedSlugs: ["personal-loan-calculator", "loan-calculator"],
@@ -446,6 +544,7 @@ const financialLoans: CalculatorDefinition[] = [
         lower = b.upTo;
         if (price <= b.upTo) break;
       }
+      const totalInterest = pmt * n(i.termYears, 25) * 12 - loan;
       return {
         results: [
           { label: "Monthly Repayment", value: `£${fmtNumber(pmt)}`, emphasis: true },
@@ -453,6 +552,11 @@ const financialLoans: CalculatorDefinition[] = [
           { label: "Loan (Mortgage) Amount", value: `£${fmtNumber(loan)}` },
         ],
         notes: ["Standard England/NI residential SDLT bands shown — first-time buyer relief, Scotland (LBTT) and Wales (LTT) use different bands."],
+        breakdown: [
+          { label: "Loan Amount", value: loan, displayValue: `£${fmtNumber(loan)}` },
+          { label: "Total Interest", value: totalInterest, displayValue: `£${fmtNumber(totalInterest)}` },
+        ],
+        chartCaption: `Over ${n(i.termYears, 25)} years you'll pay back £${fmtNumber(loan + totalInterest)} on a £${fmtNumber(loan)} loan — interest alone adds ${fmtNumber((totalInterest / Math.max(1, loan)) * 100, 0)}%.`,
       };
     },
     relatedSlugs: ["mortgage-calculator"],
@@ -475,12 +579,14 @@ const financialLoans: CalculatorDefinition[] = [
       const monthlyRate = Math.pow(1 + effectiveAnnual, 1 / 12) - 1;
       const nper = n(i.termYears, 25) * 12;
       const pmt = monthlyPayment(n(i.principal), monthlyRate, nper);
+      const totalInterest = pmt * nper - n(i.principal);
       return {
         results: [
           { label: "Monthly Payment", value: fmtCurrency(pmt), emphasis: true },
           { label: "Effective Annual Rate", value: fmtPercent(effectiveAnnual * 100) },
         ],
         notes: ["Canadian law requires fixed mortgage rates to compound semi-annually — this gives a slightly different monthly rate than the US convention of monthly compounding."],
+        ...loanBreakdown(n(i.principal), totalInterest),
       };
     },
     relatedSlugs: ["mortgage-calculator"],
@@ -506,6 +612,7 @@ const financialLoans: CalculatorDefinition[] = [
       const withExtra = payoffMonths(principal, n(i.ratePercent), basePmt + n(i.extraMonthly));
       const withoutExtra = payoffMonths(principal, n(i.ratePercent), basePmt);
       if (!withExtra || !withoutExtra) return { results: [], error: "Enter a valid payment that covers the monthly interest." };
+      const scheduleRows = amortizationScheduleSample(principal, r, basePmt + n(i.extraMonthly));
       return {
         results: [
           { label: "Standard Payoff Time", value: `${(withoutExtra.months / 12).toFixed(1)} years` },
@@ -513,6 +620,8 @@ const financialLoans: CalculatorDefinition[] = [
           { label: "Interest Saved", value: fmtCurrency(withoutExtra.totalInterest - withExtra.totalInterest), emphasis: true },
           { label: "Standard Monthly Payment", value: fmtCurrency(basePmt) },
         ],
+        table: { headers: ["Year", "Principal Paid", "Interest Paid", "Remaining Balance"], rows: scheduleRows },
+        chartCaption: `Sample years from your amortization schedule with the extra ${fmtCurrency(n(i.extraMonthly))}/mo payment applied — principal paid, interest paid and remaining balance, year by year.`,
       };
     },
     relatedSlugs: ["mortgage-calculator", "mortgage-payoff-calculator"],
@@ -551,9 +660,22 @@ const financialLoans: CalculatorDefinition[] = [
     ],
     calculate: (i) => {
       const maxRent = n(i.monthlyIncome) * (n(i.targetPercent, 30) / 100);
+      const targetPercent = n(i.targetPercent, 30);
       return {
         results: [{ label: "Recommended Max Rent", value: fmtCurrency(maxRent), emphasis: true }],
         notes: ["The 30% rule is a common guideline, not a hard rule — some housing markets and lenders use up to 40%."],
+        gauge: {
+          value: targetPercent,
+          min: 0,
+          max: 60,
+          valueLabel: `${fmtNumber(targetPercent, 0)}% of income`,
+          zones: [
+            { label: "Affordable (≤30%)", to: 30, barClass: "bg-emerald-400 dark:bg-emerald-500", textClass: "text-emerald-600 dark:text-emerald-400" },
+            { label: "Cost-Burdened (30–50%)", to: 50, barClass: "bg-amber-400 dark:bg-amber-500", textClass: "text-amber-600 dark:text-amber-400" },
+            { label: "Severely Cost-Burdened (>50%)", to: 60, barClass: "bg-red-400 dark:bg-red-500", textClass: "text-red-600 dark:text-red-400" },
+          ],
+        },
+        chartCaption: `Budgeting ${fmtNumber(targetPercent, 0)}% of income for rent leaves ${fmtCurrency(n(i.monthlyIncome) - maxRent)}/mo for everything else.`,
       };
     },
     relatedSlugs: ["rent-vs-buy-calculator", "budget-calculator"],
@@ -584,6 +706,12 @@ const financialLoans: CalculatorDefinition[] = [
           { label: "Total Investment", value: fmtCurrency(totalInvestment) },
           { label: "Net Sale Proceeds", value: fmtCurrency(netProceeds) },
         ],
+        breakdown: [
+          { label: "Purchase Price", value: n(i.purchasePrice), displayValue: fmtCurrency(n(i.purchasePrice)) },
+          { label: "Renovation Cost", value: n(i.renovationCost), displayValue: fmtCurrency(n(i.renovationCost)) },
+          { label: "Holding Costs", value: n(i.holdingCosts), displayValue: fmtCurrency(n(i.holdingCosts)) },
+        ],
+        chartCaption: `Your ${fmtCurrency(totalInvestment)} total investment breaks down into purchase, renovation and holding costs — against a projected ${fmtCurrency(netProceeds)} in net sale proceeds.`,
       };
     },
     relatedSlugs: ["roi-calculator", "rental-property-calculator"],
@@ -611,6 +739,19 @@ const financialLoans: CalculatorDefinition[] = [
           { label: "Lender View", value: category, emphasis: true },
         ],
         notes: ["Most mortgage lenders want DTI at or below 36–43%, depending on the loan program."],
+        gauge: {
+          value: dti,
+          min: 0,
+          max: 80,
+          valueLabel: fmtPercent(dti),
+          zones: [
+            { label: "Excellent (≤20%)", to: 20, barClass: "bg-emerald-400 dark:bg-emerald-500", textClass: "text-emerald-600 dark:text-emerald-400" },
+            { label: "Good (20–36%)", to: 36, barClass: "bg-emerald-500 dark:bg-emerald-400", textClass: "text-emerald-600 dark:text-emerald-400" },
+            { label: "Borderline (36–43%)", to: 43, barClass: "bg-amber-400 dark:bg-amber-500", textClass: "text-amber-600 dark:text-amber-400" },
+            { label: "High (>43%)", to: 80, barClass: "bg-red-400 dark:bg-red-500", textClass: "text-red-600 dark:text-red-400" },
+          ],
+        },
+        chartCaption: `Your DTI of ${fmtPercent(dti)} falls in the "${category}" range — most mortgage lenders want it at or below 36–43%.`,
       };
     },
     relatedSlugs: ["house-affordability-calculator"],

@@ -1,6 +1,6 @@
 import type { CalculatorDefinition } from "./types";
 import { n, fmtCurrency, fmtNumber, fmtPercent } from "../format";
-import { fvAnnuity, npv, irr as irrSolve } from "./finance-helpers";
+import { fvAnnuity, npv, irr as irrSolve, fvGrowthSeries } from "./finance-helpers";
 
 const RMD_TABLE: Record<number, number> = {
   72: 27.4, 73: 26.5, 74: 25.5, 75: 24.6, 76: 23.7, 77: 22.9, 78: 22.0, 79: 21.1,
@@ -37,6 +37,8 @@ const financialInvesting: CalculatorDefinition[] = [
           { label: "Total Contributed", value: fmtCurrency(contributed) },
           { label: "Investment Growth", value: fmtCurrency(fv - contributed) },
         ],
+        growthSeries: fvGrowthSeries(n(i.initial), n(i.monthlyContribution), n(i.returnPercent), n(i.years)),
+        chartCaption: `Inflation at ${fmtNumber(n(i.inflationPercent))}%/yr means your ${fmtCurrency(fv)} nest egg only buys what ${fmtCurrency(real)} buys today.`,
       };
     },
     relatedSlugs: ["compound-interest-calculator", "retirement-calculator"],
@@ -65,6 +67,8 @@ const financialInvesting: CalculatorDefinition[] = [
           { label: "Maturity Value", value: fmtCurrency(maturity), emphasis: true },
           { label: "Interest Earned", value: fmtCurrency(maturity - n(i.deposit)) },
         ],
+        growthSeries: fvGrowthSeries(n(i.deposit), 0, n(i.apyPercent), t),
+        chartCaption: `Your ${fmtCurrency(n(i.deposit))} deposit grows to ${fmtCurrency(maturity)} by the time it matures, with no further deposits needed.`,
       };
     },
     relatedSlugs: ["compound-interest-calculator", "savings-calculator"],
@@ -91,6 +95,7 @@ const financialInvesting: CalculatorDefinition[] = [
       for (let t = 1; t <= yrs; t++) price += coupon / Math.pow(1 + r, t);
       price += face / Math.pow(1 + r, yrs);
       const currentYield = (coupon / price) * 100;
+      const totalCouponIncome = coupon * yrs;
       return {
         results: [
           { label: "Bond Price", value: fmtCurrency(price), emphasis: true },
@@ -98,6 +103,11 @@ const financialInvesting: CalculatorDefinition[] = [
           { label: "Annual Coupon Payment", value: fmtCurrency(coupon) },
         ],
         notes: [price > face ? "Trading at a premium (market rate below coupon rate)." : price < face ? "Trading at a discount (market rate above coupon rate)." : "Trading at par."],
+        breakdown: [
+          { label: "Face Value (Principal)", value: face, displayValue: fmtCurrency(face) },
+          { label: "Total Coupon Income", value: totalCouponIncome, displayValue: fmtCurrency(totalCouponIncome) },
+        ],
+        chartCaption: `Over ${yrs} years, this bond pays out ${fmtCurrency(totalCouponIncome)} in coupons on top of returning your ${fmtCurrency(face)} principal at maturity.`,
       };
     },
     relatedSlugs: ["cd-calculator", "present-value-calculator"],
@@ -129,6 +139,8 @@ const financialInvesting: CalculatorDefinition[] = [
           { label: "Lost to Fees Over Time", value: fmtCurrency(fvGross - fv) },
           { label: "Net Annual Return", value: fmtPercent(netRate) },
         ],
+        growthSeries: fvGrowthSeries(n(i.initial), n(i.monthlyContribution), netRate, n(i.years)),
+        chartCaption: `A ${fmtNumber(n(i.expenseRatioPercent))}% expense ratio doesn't sound like much, but compounded over ${n(i.years)} years it quietly costs you ${fmtCurrency(fvGross - fv)}.`,
       };
     },
     relatedSlugs: ["investment-calculator", "roi-calculator"],
@@ -158,6 +170,8 @@ const financialInvesting: CalculatorDefinition[] = [
           { label: "Total Contributed", value: fmtCurrency(n(i.currentBalance) + n(i.annualContribution) * years) },
         ],
         notes: ["Qualified Roth withdrawals in retirement are entirely tax-free — unlike a traditional IRA."],
+        growthSeries: fvGrowthSeries(n(i.currentBalance), n(i.annualContribution) / 12, n(i.returnPercent), years),
+        chartCaption: `Projected Roth IRA growth from age ${fmtNumber(n(i.currentAge, 28), 0)} to ${fmtNumber(n(i.retirementAge, 65), 0)} — every dollar in this chart comes out tax-free.`,
       };
     },
     relatedSlugs: ["ira-calculator", "retirement-calculator"],
@@ -189,6 +203,8 @@ const financialInvesting: CalculatorDefinition[] = [
           { label: "After-Tax Value", value: fmtCurrency(afterTax), emphasis: true },
         ],
         notes: ["Traditional IRA contributions may be tax-deductible now, but withdrawals are taxed as ordinary income in retirement."],
+        growthSeries: fvGrowthSeries(n(i.currentBalance), n(i.annualContribution) / 12, n(i.returnPercent), years),
+        chartCaption: `Projected pre-tax balance growth to retirement — remember ${fmtPercent(n(i.withdrawalTaxPercent))} of whatever's left goes to taxes on the way out.`,
       };
     },
     relatedSlugs: ["roth-ira-calculator", "rmd-calculator"],
@@ -209,12 +225,21 @@ const financialInvesting: CalculatorDefinition[] = [
       const age = Math.min(100, Math.max(72, Math.round(n(i.age, 75))));
       const factor = RMD_TABLE[age] ?? 6.4;
       const rmd = n(i.balance) / factor;
+      const windowStart = Math.min(Math.max(72, age - 2), 95);
+      const tableRows = Array.from({ length: 6 }, (_, idx) => windowStart + idx)
+        .filter((a) => a <= 100)
+        .map((a) => {
+          const f = RMD_TABLE[a] ?? 6.4;
+          return [String(a), fmtNumber(f, 1), fmtCurrency(n(i.balance) / f)];
+        });
       return {
         results: [
           { label: "Required Minimum Distribution", value: fmtCurrency(rmd), emphasis: true },
           { label: "IRS Life Expectancy Factor", value: fmtNumber(factor, 1) },
         ],
         notes: ["Uses the IRS Uniform Lifetime Table. A different table applies if your sole beneficiary is a spouse more than 10 years younger."],
+        table: { headers: ["Age", "Life Expectancy Factor", "RMD (same balance)"], rows: tableRows },
+        chartCaption: `The IRS factor shrinks every year, so the required distribution grows even if your balance doesn't.`,
       };
     },
     relatedSlugs: ["ira-calculator"],
@@ -233,7 +258,15 @@ const financialInvesting: CalculatorDefinition[] = [
     ],
     calculate: (i) => {
       const pv = n(i.futureValue) / Math.pow(1 + n(i.ratePercent) / 100, n(i.years));
-      return { results: [{ label: "Present Value", value: fmtCurrency(pv), emphasis: true }], formula: "PV = FV / (1+r)^t" };
+      return {
+        results: [{ label: "Present Value", value: fmtCurrency(pv), emphasis: true }],
+        formula: "PV = FV / (1+r)^t",
+        compare: [
+          { label: `Future Value (in ${fmtNumber(n(i.years), 0)}yr)`, value: n(i.futureValue), displayValue: fmtCurrency(n(i.futureValue)) },
+          { label: "Present Value (today)", value: pv, displayValue: fmtCurrency(pv), highlight: true },
+        ],
+        chartCaption: `At a ${fmtPercent(n(i.ratePercent))} discount rate, ${fmtCurrency(n(i.futureValue))} that far in the future is only worth ${fmtCurrency(pv)} in today's dollars.`,
+      };
     },
     relatedSlugs: ["future-value-calculator", "bond-calculator"],
   },
@@ -254,7 +287,12 @@ const financialInvesting: CalculatorDefinition[] = [
       const months = n(i.years) * 12;
       const im = n(i.ratePercent) / 100 / 12;
       const fv = n(i.presentValue) * Math.pow(1 + im, months) + fvAnnuity(n(i.monthlyContribution), im, months);
-      return { results: [{ label: "Future Value", value: fmtCurrency(fv), emphasis: true }], formula: "FV = PV(1+r)^t + PMT×[((1+r)^t−1)/r]" };
+      return {
+        results: [{ label: "Future Value", value: fmtCurrency(fv), emphasis: true }],
+        formula: "FV = PV(1+r)^t + PMT×[((1+r)^t−1)/r]",
+        growthSeries: fvGrowthSeries(n(i.presentValue), n(i.monthlyContribution), n(i.ratePercent), n(i.years)),
+        chartCaption: `Tap any bar to see the projected balance at that point in the ${n(i.years)}-year timeline.`,
+      };
     },
     relatedSlugs: ["present-value-calculator", "compound-interest-calculator"],
   },
@@ -274,11 +312,19 @@ const financialInvesting: CalculatorDefinition[] = [
       if (flows.length === 0) return { results: [], error: "Enter at least one cash flow, e.g. 12000, 15000, 18000" };
       const rate = irrSolve(n(i.initialInvestment), flows);
       if (rate === null) return { results: [], error: "No IRR found in a reasonable range — check your cash flow signs and amounts." };
+      let cumulative = -n(i.initialInvestment);
+      const rows: string[][] = [["0", fmtCurrency(-n(i.initialInvestment)), fmtCurrency(cumulative)]];
+      flows.forEach((cf, idx) => {
+        cumulative += cf;
+        rows.push([String(idx + 1), fmtCurrency(cf), fmtCurrency(cumulative)]);
+      });
       return {
         results: [
           { label: "IRR", value: fmtPercent(rate * 100), emphasis: true },
           { label: "NPV at 0%", value: fmtCurrency(npv(0, n(i.initialInvestment), flows)) },
         ],
+        table: { headers: ["Period", "Cash Flow", "Cumulative Cash Flow"], rows },
+        chartCaption: `An IRR of ${fmtPercent(rate * 100)} is the discount rate at which this cash flow stream breaks exactly even.`,
       };
     },
     relatedSlugs: ["payback-period-calculator", "roi-calculator"],
@@ -297,18 +343,28 @@ const financialInvesting: CalculatorDefinition[] = [
     calculate: (i) => {
       const flows = (i.cashFlows || "").split(",").map((s) => Number(s.trim())).filter((v) => Number.isFinite(v));
       if (flows.length === 0) return { results: [], error: "Enter at least one annual cash flow." };
-      let cumulative = 0;
+      let cumulative = -n(i.initialInvestment);
       let paybackYear = -1;
+      const rows: string[][] = [["0", fmtCurrency(-n(i.initialInvestment)), fmtCurrency(cumulative)]];
       for (let idx = 0; idx < flows.length; idx++) {
         const prev = cumulative;
         cumulative += flows[idx];
-        if (cumulative >= n(i.initialInvestment) && paybackYear === -1) {
-          const fraction = (n(i.initialInvestment) - prev) / flows[idx];
-          paybackYear = idx + fraction;
+        rows.push([String(idx + 1), fmtCurrency(flows[idx]), fmtCurrency(cumulative)]);
+        if (prev < 0 && cumulative >= 0 && paybackYear === -1) {
+          paybackYear = idx + -prev / flows[idx];
         }
       }
-      if (paybackYear === -1) return { results: [{ label: "Payback Period", value: "Not recovered within given cash flows" }] };
-      return { results: [{ label: "Payback Period", value: `${fmtNumber(paybackYear, 2)} years`, emphasis: true }] };
+      if (paybackYear === -1) {
+        return {
+          results: [{ label: "Payback Period", value: "Not recovered within given cash flows" }],
+          table: { headers: ["Year", "Cash Flow", "Cumulative Cash Flow"], rows },
+        };
+      }
+      return {
+        results: [{ label: "Payback Period", value: `${fmtNumber(paybackYear, 2)} years`, emphasis: true }],
+        table: { headers: ["Year", "Cash Flow", "Cumulative Cash Flow"], rows },
+        chartCaption: `Cumulative cash flow crosses zero at ${fmtNumber(paybackYear, 2)} years — that's when the investment has fully paid for itself.`,
+      };
     },
     relatedSlugs: ["irr-calculator", "roi-calculator"],
   },
@@ -326,12 +382,20 @@ const financialInvesting: CalculatorDefinition[] = [
       const arithmetic = returns.reduce((a, b) => a + b, 0) / returns.length;
       const product = returns.reduce((a, r) => a * (1 + r / 100), 1);
       const geometric = (Math.pow(product, 1 / returns.length) - 1) * 100;
+      const best = Math.max(...returns);
+      const worst = Math.min(...returns);
       return {
         results: [
           { label: "Arithmetic Average Return", value: fmtPercent(arithmetic) },
           { label: "Geometric Average Return (CAGR)", value: fmtPercent(geometric), emphasis: true },
         ],
         notes: ["The geometric average is the more accurate measure of actual compounded investment performance over multiple years."],
+        compare: [
+          { label: "Best Year", value: best, displayValue: fmtPercent(best) },
+          { label: "Worst Year", value: worst, displayValue: fmtPercent(worst) },
+          { label: "Geometric Average (CAGR)", value: geometric, displayValue: fmtPercent(geometric), highlight: true },
+        ],
+        chartCaption: `Returns swung from ${fmtPercent(best)} in the best year to ${fmtPercent(worst)} in the worst — the CAGR of ${fmtPercent(geometric)} is what you actually earned smoothed over the whole period.`,
       };
     },
     relatedSlugs: ["roi-calculator"],
@@ -351,13 +415,24 @@ const financialInvesting: CalculatorDefinition[] = [
     ],
     calculate: (i) => {
       const r = n(i.ratePercent) / 100;
-      let fv = fvAnnuity(n(i.payment), r, n(i.periods, 120));
+      const periods = n(i.periods, 120);
+      let fv = fvAnnuity(n(i.payment), r, periods);
       if (i.type === "due") fv *= 1 + r;
+      const numYears = Math.max(1, Math.ceil(periods / 12));
+      const growthSeries = Array.from({ length: numYears }, (_, idx) => {
+        const y = idx + 1;
+        const periodsElapsed = Math.min(periods, y * 12);
+        let value = fvAnnuity(n(i.payment), r, periodsElapsed);
+        if (i.type === "due") value *= 1 + r;
+        return { label: `Yr ${y}`, value, displayValue: fmtCurrency(value) };
+      });
       return {
         results: [
           { label: "Future Value", value: fmtCurrency(fv), emphasis: true },
-          { label: "Total Contributed", value: fmtCurrency(n(i.payment) * n(i.periods, 120)) },
+          { label: "Total Contributed", value: fmtCurrency(n(i.payment) * periods) },
         ],
+        growthSeries,
+        chartCaption: `Steady ${fmtCurrency(n(i.payment))} payments compound into ${fmtCurrency(fv)} by the end of the term.`,
       };
     },
     relatedSlugs: ["annuity-payout-calculator", "future-value-calculator"],
@@ -378,11 +453,18 @@ const financialInvesting: CalculatorDefinition[] = [
       const r = n(i.ratePercent) / 100;
       const nper = n(i.periods, 240);
       const pmt = r === 0 ? n(i.presentValue) / nper : (n(i.presentValue) * r) / (1 - Math.pow(1 + r, -nper));
+      const totalPaidOut = pmt * nper;
+      const interestEarned = Math.max(0, totalPaidOut - n(i.presentValue));
       return {
         results: [
           { label: "Payment Per Period", value: fmtCurrency(pmt), emphasis: true },
-          { label: "Total Paid Out", value: fmtCurrency(pmt * nper) },
+          { label: "Total Paid Out", value: fmtCurrency(totalPaidOut) },
         ],
+        breakdown: [
+          { label: "Original Lump Sum", value: n(i.presentValue), displayValue: fmtCurrency(n(i.presentValue)) },
+          { label: "Interest Earned Over Payout", value: interestEarned, displayValue: fmtCurrency(interestEarned) },
+        ],
+        chartCaption: `Your lump sum stretches into ${fmtCurrency(totalPaidOut)} in total payouts — ${fmtCurrency(interestEarned)} of that is interest earned along the way, not just your original money coming back.`,
       };
     },
     relatedSlugs: ["annuity-calculator", "pension-calculator"],
@@ -401,12 +483,22 @@ const financialInvesting: CalculatorDefinition[] = [
     ],
     calculate: (i) => {
       const annual = n(i.finalAvgSalary) * n(i.yearsOfService) * (n(i.accrualRatePercent) / 100);
+      const baseYears = n(i.yearsOfService, 25);
+      const tableRows = [-10, -5, 0, 5, 10]
+        .map((delta) => baseYears + delta)
+        .filter((ys) => ys >= 1)
+        .map((ys) => {
+          const a = n(i.finalAvgSalary) * ys * (n(i.accrualRatePercent) / 100);
+          return [fmtNumber(ys, 0), fmtCurrency(a), fmtCurrency(a / 12)];
+        });
       return {
         results: [
           { label: "Estimated Annual Pension", value: fmtCurrency(annual), emphasis: true },
           { label: "Estimated Monthly Pension", value: fmtCurrency(annual / 12) },
         ],
         notes: ["Accrual rate and formula vary widely by plan — check your plan's specific benefit formula for an exact figure."],
+        table: { headers: ["Years of Service", "Annual Pension", "Monthly Pension"], rows: tableRows },
+        chartCaption: `Every extra year of service raises your pension by ${fmtCurrency(n(i.finalAvgSalary) * (n(i.accrualRatePercent) / 100))} a year — this table shows the payout at nearby service lengths.`,
       };
     },
     relatedSlugs: ["social-security-calculator", "retirement-calculator"],
@@ -427,19 +519,32 @@ const financialInvesting: CalculatorDefinition[] = [
     calculate: (i) => {
       const fra = n(i.fullRetirementAge, 67);
       const claim = n(i.claimingAge, 65);
-      const monthsDiff = Math.round((claim - fra) * 12);
-      let benefit = n(i.fraBenefit);
-      if (monthsDiff < 0) {
-        const early = Math.abs(monthsDiff);
-        const first36 = Math.min(36, early) * (5 / 9 / 100);
-        const beyond36 = Math.max(0, early - 36) * (5 / 12 / 100);
-        benefit *= 1 - first36 - beyond36;
-      } else if (monthsDiff > 0) {
-        benefit *= 1 + monthsDiff * (2 / 3 / 100);
-      }
+      const benefitAtAge = (claimAge: number) => {
+        const diff = Math.round((claimAge - fra) * 12);
+        let b = n(i.fraBenefit);
+        if (diff < 0) {
+          const early = Math.abs(diff);
+          const first36 = Math.min(36, early) * (5 / 9 / 100);
+          const beyond36 = Math.max(0, early - 36) * (5 / 12 / 100);
+          b *= 1 - first36 - beyond36;
+        } else if (diff > 0) {
+          b *= 1 + diff * (2 / 3 / 100);
+        }
+        return b;
+      };
+      const benefit = benefitAtAge(claim);
+      const compareAges = Array.from(new Set([62, fra, 70, claim]));
+      const compare = compareAges.map((age) => ({
+        label: age === fra ? `Full Retirement (${fmtNumber(age, 0)})` : `Age ${fmtNumber(age, 0)}`,
+        value: benefitAtAge(age),
+        displayValue: fmtCurrency(benefitAtAge(age)),
+        highlight: age === claim,
+      }));
       return {
         results: [{ label: `Monthly Benefit at Age ${fmtNumber(claim, 0)}`, value: fmtCurrency(benefit), emphasis: true }],
         notes: ["Simplified estimate using standard SSA early/delayed retirement adjustment rules — your actual benefit depends on your full earnings record."],
+        compare,
+        chartCaption: `Claiming at ${fmtNumber(claim, 0)} instead of your full retirement age of ${fmtNumber(fra, 0)} changes your monthly check by ${fmtCurrency(Math.abs(benefit - n(i.fraBenefit)))} — the difference locks in for life.`,
       };
     },
     relatedSlugs: ["pension-calculator", "retirement-calculator"],
@@ -471,6 +576,11 @@ const financialInvesting: CalculatorDefinition[] = [
           { label: gap > 0 ? "Annual Income Shortfall" : "Annual Income Surplus", value: fmtCurrency(Math.abs(gap)) },
         ],
         notes: ["The 4% rule is a widely used rule of thumb, not a guarantee — actual sustainable withdrawal rates depend on market conditions and retirement length."],
+        growthSeries: fvGrowthSeries(n(i.currentSavings), n(i.monthlyContribution), n(i.returnPercent), n(i.yearsToRetirement)),
+        chartCaption:
+          gap > 0
+            ? `At this savings rate, your projected income falls ${fmtCurrency(gap)} short of your ${fmtCurrency(n(i.desiredAnnualIncome))} goal each year in retirement.`
+            : `Your projected savings clear your ${fmtCurrency(n(i.desiredAnnualIncome))} income goal with ${fmtCurrency(Math.abs(gap))} to spare each year.`,
       };
     },
     relatedSlugs: ["retirement-401k-calculator", "social-security-calculator"],
@@ -495,6 +605,11 @@ const financialInvesting: CalculatorDefinition[] = [
           { label: "Amount Borrowed", value: fmtCurrency(borrowed) },
         ],
         notes: ["Trading on margin amplifies both gains and losses, and brokers can issue a margin call requiring more cash."],
+        breakdown: [
+          { label: "Your Equity (Cash Deposited)", value: n(i.cashDeposited), displayValue: fmtCurrency(n(i.cashDeposited)) },
+          { label: "Borrowed on Margin", value: Math.max(0, borrowed), displayValue: fmtCurrency(borrowed) },
+        ],
+        chartCaption: `Your ${fmtCurrency(n(i.cashDeposited))} in cash controls ${fmtCurrency(buyingPower)} in buying power — the rest, ${fmtCurrency(borrowed)}, is borrowed from your broker.`,
       };
     },
     relatedSlugs: ["roi-calculator"],
@@ -518,12 +633,20 @@ const financialInvesting: CalculatorDefinition[] = [
       const straightLine = (cost - salvage) / life;
       const dbRate = 2 / life;
       const decliningYear1 = cost * dbRate;
+      const wholeLife = Math.max(1, Math.round(life));
+      const growthSeries = Array.from({ length: wholeLife }, (_, idx) => {
+        const y = idx + 1;
+        const value = Math.max(salvage, cost - straightLine * y);
+        return { label: `Yr ${y}`, value, displayValue: fmtCurrency(value) };
+      });
       return {
         results: [
           { label: "Straight-Line Annual Depreciation", value: fmtCurrency(straightLine), emphasis: true },
           { label: "Double-Declining Balance (Year 1)", value: fmtCurrency(Math.min(decliningYear1, cost - salvage)) },
           { label: "Book Value After Year 1 (straight-line)", value: fmtCurrency(cost - straightLine) },
         ],
+        growthSeries,
+        chartCaption: `Book value declines by ${fmtCurrency(straightLine)} every year under straight-line depreciation, from ${fmtCurrency(cost)} down to its ${fmtCurrency(salvage)} salvage value.`,
       };
     },
     relatedSlugs: [],
@@ -543,10 +666,26 @@ const financialInvesting: CalculatorDefinition[] = [
       { name: "imports", label: "Imports (M)", type: "number", unit: "$", defaultValue: 3200000000000, min: 0 },
     ],
     calculate: (i) => {
-      const gdp = n(i.consumption) + n(i.investment) + n(i.government) + (n(i.exports) - n(i.imports));
+      const netExports = n(i.exports) - n(i.imports);
+      const gdp = n(i.consumption) + n(i.investment) + n(i.government) + netExports;
+      const pct = (v: number) => fmtPercent((v / gdp) * 100, 1);
+      const table = {
+        headers: ["Component", "Amount", "% of GDP"],
+        rows: [
+          ["Consumption (C)", fmtCurrency(n(i.consumption), "USD", 0), pct(n(i.consumption))],
+          ["Investment (I)", fmtCurrency(n(i.investment), "USD", 0), pct(n(i.investment))],
+          ["Government Spending (G)", fmtCurrency(n(i.government), "USD", 0), pct(n(i.government))],
+          ["Net Exports (X − M)", fmtCurrency(netExports, "USD", 0), pct(netExports)],
+          ["GDP (Total)", fmtCurrency(gdp, "USD", 0), "100%"],
+        ],
+      };
       return {
         results: [{ label: "GDP", value: fmtCurrency(gdp, "USD", 0), emphasis: true }],
         formula: "GDP = C + I + G + (X − M)",
+        table,
+        chartCaption: netExports < 0
+          ? `Consumption is the biggest driver of this GDP figure — net exports are negative, meaning imports (${fmtCurrency(n(i.imports), "USD", 0)}) outweigh exports (${fmtCurrency(n(i.exports), "USD", 0)}).`
+          : `Consumption is typically the biggest driver of GDP, with net exports adding ${fmtCurrency(netExports, "USD", 0)} on top.`,
       };
     },
     relatedSlugs: ["inflation-calculator"],

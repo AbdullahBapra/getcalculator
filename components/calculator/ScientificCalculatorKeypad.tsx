@@ -79,7 +79,7 @@ export default function ScientificCalculatorKeypad() {
     setJustEvaluated(false);
   }
 
-  const btn = "h-11 rounded-lg text-sm font-semibold transition active:scale-95 flex items-center justify-center";
+  const btn = "h-10 sm:h-11 rounded-lg text-[11px] sm:text-sm font-semibold transition active:scale-95 flex items-center justify-center";
   const numC = `${btn} bg-zinc-100 text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700`;
   const opC = `${btn} bg-teal-600 text-white hover:bg-teal-500`;
   const fnC = `${btn} bg-zinc-200 text-zinc-700 hover:bg-zinc-300 dark:bg-zinc-700 dark:text-zinc-200 dark:hover:bg-zinc-600`;
@@ -119,7 +119,10 @@ export default function ScientificCalculatorKeypad() {
         <div className="h-4 text-xs text-zinc-500">{error ? error : preview !== null && String(preview) !== expr ? `= ${fmtNumber(preview, 8)}` : " "}</div>
       </div>
 
-      <div className="grid grid-cols-4 gap-1.5 sm:grid-cols-8">
+      {/* 8 columns at every width, not just sm+ — a real calculator's keypad is wide
+         and squat (7 rows), not narrow and tall. Dropping to 4 columns on mobile used
+         to turn this into 13 cramped rows, taller than the phone screen itself. */}
+      <div className="grid grid-cols-8 gap-1 sm:gap-1.5">
         <button className={fnC} onClick={() => setDegrees((d) => !d)}>{degrees ? "Deg" : "Rad"}</button>
         <button className={numC} onClick={() => operator("(")}>(</button>
         <button className={numC} onClick={() => operator(")")}>)</button>

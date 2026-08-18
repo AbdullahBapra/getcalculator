@@ -1,5 +1,6 @@
 import type { CalculatorDefinition } from "./types";
 import { n, fmtNumber } from "../format";
+import { fCPair, cmInPair, lbKgPair } from "./convert-hints";
 
 function parseClock(value: string): number | null {
   const m = /^(\d{1,2}):(\d{2})$/.exec((value || "").trim());
@@ -19,11 +20,12 @@ const ELEMENTS: Record<string, number> = {
   Ni: 58.693, Pb: 207.2, Sn: 118.71, Hg: 200.59, Cr: 51.996, Co: 58.933, Ba: 137.327, Sr: 87.62, Cs: 132.905,
 };
 
-function molecularWeight(formula: string): { mw: number; breakdown: string[] } | null {
+function molecularWeight(formula: string): { mw: number; breakdown: string[]; elements: { symbol: string; count: number; contribution: number }[] } | null {
   const re = /([A-Z][a-z]?)(\d*)/g;
   let match: RegExpExecArray | null;
   let mw = 0;
   const breakdown: string[] = [];
+  const elements: { symbol: string; count: number; contribution: number }[] = [];
   let consumed = 0;
   while ((match = re.exec(formula)) !== null) {
     if (match[0] === "") { re.lastIndex++; continue; }
@@ -34,9 +36,10 @@ function molecularWeight(formula: string): { mw: number; breakdown: string[] } |
     if (weight === undefined) return null;
     mw += weight * count;
     breakdown.push(`${symbol}${count > 1 ? count : ""}: ${fmtNumber(weight * count, 3)}`);
+    elements.push({ symbol, count, contribution: weight * count });
   }
   if (consumed !== formula.length || breakdown.length === 0) return null;
-  return { mw, breakdown };
+  return { mw, breakdown, elements };
 }
 
 function toRoman(num: number): string {
@@ -98,7 +101,21 @@ const everyday2: CalculatorDefinition[] = [
       const h = Math.floor(total / 3600);
       const m = Math.floor((total % 3600) / 60);
       const s = Math.round(total % 60);
-      return { results: [{ label: "Result", value: `${negative ? "-" : ""}${h}h ${m}m ${s}s`, emphasis: true }] };
+      const fmtHMS = (secs: number) => `${Math.floor(secs / 3600)}h ${Math.floor((secs % 3600) / 60)}m ${Math.round(secs % 60)}s`;
+      return {
+        results: [{ label: "Result", value: `${negative ? "-" : ""}${h}h ${m}m ${s}s`, emphasis: true }],
+        steps: [
+          `First duration: ${fmtHMS(t1)} = ${t1} total seconds`,
+          `Second duration: ${fmtHMS(t2)} = ${t2} total seconds`,
+          `${t1}s ${i.op === "-" ? "−" : "+"} ${t2}s = ${negative ? "-" : ""}${total}s`,
+          `Converted back: ${negative ? "-" : ""}${h}h ${m}m ${s}s`,
+        ],
+        compare: [
+          { label: "First Duration", value: t1, displayValue: fmtHMS(t1), highlight: t1 >= t2 },
+          { label: "Second Duration", value: t2, displayValue: fmtHMS(t2), highlight: t2 > t1 },
+        ],
+        chartCaption: `The two durations side by side before they're ${i.op === "-" ? "subtracted" : "added"} — the result (${negative ? "-" : ""}${h}h ${m}m ${s}s) is ${i.op === "-" ? "their difference" : "their sum"}.`,
+      };
     },
     relatedSlugs: ["time-duration-calculator"],
   },
@@ -111,15 +128,23 @@ const everyday2: CalculatorDefinition[] = [
     formulaSummary: "Boys: (mother+father)/2 + 6.5cm · Girls: (mother+father)/2 − 6.5cm",
     fields: [
       { name: "childSex", label: "Child's Sex", type: "select", defaultValue: "male", options: [{ value: "male", label: "Male" }, { value: "female", label: "Female" }] },
-      { name: "motherCm", label: "Mother's Height", type: "number", unit: "cm", defaultValue: 165, min: 100 },
-      { name: "fatherCm", label: "Father's Height", type: "number", unit: "cm", defaultValue: 180, min: 100 },
+      { name: "motherCm", label: "Mother's Height", type: "number", unit: "cm", defaultValue: 165, min: 100, convertPair: cmInPair("motherCm") },
+      { name: "fatherCm", label: "Father's Height", type: "number", unit: "cm", defaultValue: 180, min: 100, convertPair: cmInPair("fatherCm") },
     ],
     calculate: (i) => {
-      const avg = (n(i.motherCm, 165) + n(i.fatherCm, 180)) / 2;
+      const motherCm = n(i.motherCm, 165);
+      const fatherCm = n(i.fatherCm, 180);
+      const avg = (motherCm + fatherCm) / 2;
       const predicted = i.childSex === "female" ? avg - 6.5 : avg + 6.5;
       return {
         results: [{ label: "Predicted Adult Height", value: `${fmtNumber(predicted, 1)} cm (${fmtNumber(predicted / 2.54, 1)} in)`, emphasis: true }],
         notes: ["A rough population-average estimate (mid-parental height method) — actual adult height varies ±8.5cm even within this method's expected range."],
+        compare: [
+          { label: "Mother", value: motherCm, displayValue: `${fmtNumber(motherCm, 1)} cm` },
+          { label: "Father", value: fatherCm, displayValue: `${fmtNumber(fatherCm, 1)} cm` },
+          { label: "Predicted Child", value: predicted, displayValue: `${fmtNumber(predicted, 1)} cm`, highlight: true },
+        ],
+        chartCaption: `The prediction starts from the parents' average height (${fmtNumber(avg, 1)} cm) and then shifts ${i.childSex === "female" ? "down" : "up"} 6.5 cm for a ${i.childSex === "female" ? "daughter" : "son"}.`,
       };
     },
     relatedSlugs: ["bmi-calculator"],
@@ -147,6 +172,16 @@ const everyday2: CalculatorDefinition[] = [
           { label: "80 lb Bags", value: fmtNumber(Math.ceil(bags80lb), 0) },
           { label: "60 lb Bags", value: fmtNumber(Math.ceil(bags60lb), 0) },
         ],
+        table: {
+          headers: ["Material / Unit", "Quantity Needed"],
+          rows: [
+            ["Ready-mix concrete", `${fmtNumber(cubicYards, 2)} cubic yards`],
+            ["Cubic feet (raw)", `${fmtNumber(cubicFt, 1)} cu ft`],
+            ["80 lb pre-mix bags", `${fmtNumber(Math.ceil(bags80lb), 0)} bags`],
+            ["60 lb pre-mix bags", `${fmtNumber(Math.ceil(bags60lb), 0)} bags`],
+          ],
+        },
+        chartCaption: "Either buy ready-mix by the cubic yard for a delivery truck, or use one of the bag counts if you're mixing bags yourself — don't add both bag rows together, they're two alternatives for the same slab.",
       };
     },
     relatedSlugs: ["square-footage-calculator", "gravel-calculator"],
@@ -168,7 +203,20 @@ const everyday2: CalculatorDefinition[] = [
       const diff = Math.round(n(i.bustIn, 36) - n(i.underbustIn, 32));
       const cups = ["AA", "A", "B", "C", "D", "DD/E", "DDD/F", "G", "H", "I", "J"];
       const cup = cups[Math.max(0, Math.min(cups.length - 1, diff))];
-      return { results: [{ label: "Estimated Bra Size", value: `${band}${cup}`, emphasis: true }] };
+      return {
+        results: [{ label: "Estimated Bra Size", value: `${band}${cup}`, emphasis: true }],
+        steps: [
+          `Band size rounds your ${fmtNumber(n(i.underbustIn, 32), 1)} in underbust to the nearest even number = ${band}`,
+          `Bust minus underbust = ${fmtNumber(n(i.bustIn, 36), 1)} − ${fmtNumber(n(i.underbustIn, 32), 1)} = ${diff} in difference`,
+          `Each inch of difference steps up one cup letter (0"=AA, 1"=A, 2"=B, ...) → ${diff}" = ${cup} cup`,
+          `Estimated size: ${band}${cup}`,
+        ],
+        compare: [
+          { label: "Underbust (Band)", value: n(i.underbustIn, 32), displayValue: `${fmtNumber(n(i.underbustIn, 32), 1)} in` },
+          { label: "Bust (Fullest Point)", value: n(i.bustIn, 36), displayValue: `${fmtNumber(n(i.bustIn, 36), 1)} in`, highlight: true },
+        ],
+        chartCaption: `The ${diff} in gap between your bust and underbust measurements is what determines the ${cup} cup letter — a bigger gap means a bigger cup.`,
+      };
     },
     relatedSlugs: ["shoe-size-conversion"],
   },
@@ -185,13 +233,26 @@ const everyday2: CalculatorDefinition[] = [
       { name: "pricePerGallon", label: "Fuel Price", type: "number", unit: "$/gal", defaultValue: 3.5, step: 0.01, min: 0 },
     ],
     calculate: (i) => {
-      const gallons = n(i.distance, 300) / n(i.mpg, 28);
-      const cost = gallons * n(i.pricePerGallon, 3.5);
+      const distance = n(i.distance, 300);
+      const price = n(i.pricePerGallon, 3.5);
+      const gallons = distance / n(i.mpg, 28);
+      const cost = gallons * price;
+      const avgMpg = 25;
+      const avgCost = (distance / avgMpg) * price;
       return {
         results: [
           { label: "Fuel Needed", value: `${fmtNumber(gallons, 2)} gallons` },
           { label: "Total Fuel Cost", value: `$${fmtNumber(cost, 2)}`, emphasis: true },
         ],
+        steps: [
+          `Gallons needed = ${fmtNumber(distance, 0)} miles ÷ ${fmtNumber(n(i.mpg, 28), 1)} mpg = ${fmtNumber(gallons, 2)} gallons`,
+          `Cost = ${fmtNumber(gallons, 2)} gallons × $${fmtNumber(price, 2)}/gal = $${fmtNumber(cost, 2)}`,
+        ],
+        compare: [
+          { label: "Your Trip Cost", value: cost, displayValue: `$${fmtNumber(cost, 2)}`, highlight: cost <= avgCost },
+          { label: "At Average 25 MPG", value: avgCost, displayValue: `$${fmtNumber(avgCost, 2)}` },
+        ],
+        chartCaption: `At the same fuel price, this trip would cost $${fmtNumber(avgCost, 2)} in a vehicle averaging 25 MPG — your ${fmtNumber(n(i.mpg, 28), 1)} MPG ${cost <= avgCost ? "saves you" : "costs you"} $${fmtNumber(Math.abs(avgCost - cost), 2)}.`,
       };
     },
     relatedSlugs: ["gas-mileage-calculator", "mileage-calculator"],
@@ -209,7 +270,22 @@ const everyday2: CalculatorDefinition[] = [
     ],
     calculate: (i) => {
       const mpg = n(i.miles, 320) / n(i.gallons, 11.5);
-      return { results: [{ label: "Fuel Economy", value: `${fmtNumber(mpg, 2)} MPG`, emphasis: true }] };
+      return {
+        results: [{ label: "Fuel Economy", value: `${fmtNumber(mpg, 2)} MPG`, emphasis: true }],
+        gauge: {
+          value: mpg,
+          min: 0,
+          max: 50,
+          valueLabel: `${fmtNumber(mpg, 1)} MPG`,
+          zones: [
+            { label: "Poor", to: 18, barClass: "bg-red-400 dark:bg-red-500", textClass: "text-red-600 dark:text-red-400" },
+            { label: "Average", to: 27, barClass: "bg-amber-400 dark:bg-amber-500", textClass: "text-amber-600 dark:text-amber-400" },
+            { label: "Good", to: 36, barClass: "bg-teal-500 dark:bg-teal-400", textClass: "text-teal-600 dark:text-teal-400" },
+            { label: "Excellent", to: 50, barClass: "bg-sky-400 dark:bg-sky-500", textClass: "text-sky-600 dark:text-sky-400" },
+          ],
+        },
+        chartCaption: `${fmtNumber(mpg, 1)} MPG is roughly ${mpg < 18 ? "below" : mpg < 27 ? "around" : mpg < 36 ? "above" : "well above"} the typical gas-vehicle average — hybrids and small cars often land in the "Good" or "Excellent" zone.`,
+      };
     },
     relatedSlugs: ["fuel-cost-calculator"],
   },
@@ -225,8 +301,23 @@ const everyday2: CalculatorDefinition[] = [
       { name: "ratePerMile", label: "Rate Per Mile", type: "number", unit: "$", defaultValue: 0.67, step: 0.01, min: 0, help: "2024 IRS standard business rate: $0.67/mile" },
     ],
     calculate: (i) => {
-      const reimbursement = n(i.miles, 150) * n(i.ratePerMile, 0.67);
-      return { results: [{ label: "Reimbursement", value: `$${fmtNumber(reimbursement, 2)}`, emphasis: true }] };
+      const miles = n(i.miles, 150);
+      const rate = n(i.ratePerMile, 0.67);
+      const reimbursement = miles * rate;
+      const standardRate = 0.67;
+      const standardReimbursement = miles * standardRate;
+      return {
+        results: [{ label: "Reimbursement", value: `$${fmtNumber(reimbursement, 2)}`, emphasis: true }],
+        steps: [`Reimbursement = ${fmtNumber(miles, 1)} miles × $${fmtNumber(rate, 3)}/mile = $${fmtNumber(reimbursement, 2)}`],
+        compare: [
+          { label: "At Your Rate", value: reimbursement, displayValue: `$${fmtNumber(reimbursement, 2)}`, highlight: true },
+          { label: "At 2024 IRS Rate ($0.67)", value: standardReimbursement, displayValue: `$${fmtNumber(standardReimbursement, 2)}` },
+        ],
+        chartCaption:
+          rate === standardRate
+            ? "You're using the 2024 IRS standard business rate, so both bars match."
+            : `Your $${fmtNumber(rate, 3)}/mile rate ${rate > standardRate ? "pays more" : "pays less"} than the 2024 IRS standard rate would for the same ${fmtNumber(miles, 1)} miles.`,
+      };
     },
     relatedSlugs: ["fuel-cost-calculator"],
   },
@@ -243,7 +334,19 @@ const everyday2: CalculatorDefinition[] = [
     ],
     calculate: (i) => {
       const hp = (n(i.torque, 300) * n(i.rpm, 5252)) / 5252;
-      return { results: [{ label: "Horsepower", value: `${fmtNumber(hp, 1)} hp`, emphasis: true }], formula: "HP = torque × RPM ÷ 5252" };
+      return {
+        results: [{ label: "Horsepower", value: `${fmtNumber(hp, 1)} hp`, emphasis: true }],
+        formula: "HP = torque × RPM ÷ 5252",
+        steps: [
+          `HP = ${fmtNumber(n(i.torque, 300), 1)} lb-ft × ${fmtNumber(n(i.rpm, 5252), 0)} RPM ÷ 5252 = ${fmtNumber(hp, 1)} hp`,
+          "5252 is the RPM at which torque (lb-ft) and horsepower always cross the same numeric value — it's not a rounding choice, it falls out of the unit conversion.",
+        ],
+        compare: [
+          { label: "This Result", value: hp, displayValue: `${fmtNumber(hp, 1)} hp`, highlight: hp >= 200 },
+          { label: "Typical Passenger Car", value: 200, displayValue: "~200 hp" },
+        ],
+        chartCaption: `For scale, a typical modern passenger car makes roughly 200 hp — this result is ${hp >= 200 ? `about ${fmtNumber(hp / 200, 1)}× that` : `about ${fmtNumber((hp / 200) * 100, 0)}% of that`}.`,
+      };
     },
     relatedSlugs: ["engine-horsepower-calculator"],
   },
@@ -255,12 +358,24 @@ const everyday2: CalculatorDefinition[] = [
     seoDescription: "Estimate engine horsepower from vehicle weight and its quarter-mile trap speed.",
     formulaSummary: "HP = weight × (trap speed ÷ 234)³",
     fields: [
-      { name: "weight", label: "Vehicle Weight", type: "number", unit: "lb", defaultValue: 3400, min: 0 },
+      { name: "weight", label: "Vehicle Weight", type: "number", unit: "lb", defaultValue: 3400, min: 0, convertPair: lbKgPair("weight") },
       { name: "trapSpeed", label: "Quarter-Mile Trap Speed", type: "number", unit: "mph", defaultValue: 95, min: 0 },
     ],
     calculate: (i) => {
       const hp = n(i.weight, 3400) * Math.pow(n(i.trapSpeed, 95) / 234, 3);
-      return { results: [{ label: "Estimated Horsepower", value: `${fmtNumber(hp, 0)} hp`, emphasis: true }] };
+      return {
+        results: [{ label: "Estimated Horsepower", value: `${fmtNumber(hp, 0)} hp`, emphasis: true }],
+        steps: [
+          `Trap speed ratio = ${fmtNumber(n(i.trapSpeed, 95), 1)} mph ÷ 234 = ${fmtNumber(n(i.trapSpeed, 95) / 234, 4)}`,
+          `Cubed = ${fmtNumber(Math.pow(n(i.trapSpeed, 95) / 234, 3), 6)}`,
+          `HP ≈ ${fmtNumber(n(i.weight, 3400), 0)} lb × ${fmtNumber(Math.pow(n(i.trapSpeed, 95) / 234, 3), 6)} = ${fmtNumber(hp, 0)} hp`,
+        ],
+        compare: [
+          { label: "This Result", value: hp, displayValue: `${fmtNumber(hp, 0)} hp`, highlight: hp >= 200 },
+          { label: "Typical Passenger Car", value: 200, displayValue: "~200 hp" },
+        ],
+        chartCaption: `For scale, a typical modern passenger car makes roughly 200 hp — this estimate is ${hp >= 200 ? `about ${fmtNumber(hp / 200, 1)}× that` : `about ${fmtNumber((hp / 200) * 100, 0)}% of that`}.`,
+      };
     },
     relatedSlugs: ["horsepower-calculator"],
   },
@@ -291,6 +406,11 @@ const everyday2: CalculatorDefinition[] = [
           { label: "Difference", value: `${pctDiff >= 0 ? "+" : ""}${fmtNumber(pctDiff, 2)}%`, emphasis: true },
         ],
         notes: [Math.abs(pctDiff) > 3 ? "A difference over ~3% can noticeably throw off your speedometer and odometer accuracy." : "This difference is small enough to be within the typical acceptable range."],
+        compare: [
+          { label: "Tire 1", value: d1, displayValue: `${fmtNumber(d1, 2)} in`, highlight: d1 >= d2 },
+          { label: "Tire 2", value: d2, displayValue: `${fmtNumber(d2, 2)} in`, highlight: d2 > d1 },
+        ],
+        chartCaption: `Tire ${d2 >= d1 ? 2 : 1} stands ${fmtNumber(Math.abs(pctDiff), 2)}% taller — that changes how far you actually travel per wheel rotation versus what your speedometer reads.`,
       };
     },
     relatedSlugs: [],
@@ -313,6 +433,7 @@ const everyday2: CalculatorDefinition[] = [
       const riserHeight = totalRise / numSteps;
       const totalRun = (numSteps - 1) * n(i.treadDepthIn, 10);
       const stringerLength = Math.sqrt(totalRise * totalRise + totalRun * totalRun);
+      const maxRiser = n(i.maxRiserIn, 7.5);
       return {
         results: [
           { label: "Number of Steps", value: fmtNumber(numSteps, 0), emphasis: true },
@@ -320,6 +441,11 @@ const everyday2: CalculatorDefinition[] = [
           { label: "Total Run", value: `${fmtNumber(totalRun, 1)} in` },
           { label: "Stringer Length", value: `${fmtNumber(stringerLength / 12, 2)} ft` },
         ],
+        compare: [
+          { label: "Your Riser Height", value: riserHeight, displayValue: `${fmtNumber(riserHeight, 2)} in`, highlight: true },
+          { label: "Code Max Riser", value: maxRiser, displayValue: `${fmtNumber(maxRiser, 2)} in` },
+        ],
+        chartCaption: `Each step's riser (${fmtNumber(riserHeight, 2)} in) comes in ${riserHeight <= maxRiser ? "under" : "over"} your ${fmtNumber(maxRiser, 2)} in code limit — steps are spread evenly so no single riser exceeds it.`,
       };
     },
     relatedSlugs: ["roofing-calculator"],
@@ -347,6 +473,22 @@ const everyday2: CalculatorDefinition[] = [
           { label: "Resistance", value: value >= 1000 ? `${fmtNumber(value / 1000, 2)} kΩ` : `${fmtNumber(value, 2)} Ω`, emphasis: true },
           { label: "Tolerance", value: tolerances[i.band4] ?? "±5%" },
         ],
+        steps: [
+          `Band 1 (${i.band1}) = digit ${digits[i.band1]}, Band 2 (${i.band2}) = digit ${digits[i.band2]} → two-digit number ${digits[i.band1] * 10 + digits[i.band2]}`,
+          `Band 3 (${i.band3}) = multiplier ×${multipliers[i.band3]}`,
+          `Resistance = ${digits[i.band1] * 10 + digits[i.band2]} × ${multipliers[i.band3]} = ${fmtNumber(value, 2)} Ω`,
+          `Band 4 (${i.band4}) sets tolerance = ${tolerances[i.band4] ?? "±5%"} — the actual part can measure anywhere in that ± range and still be in spec.`,
+        ],
+        table: {
+          headers: ["Band", "Color", "Meaning"],
+          rows: [
+            ["1st digit", i.band1[0].toUpperCase() + i.band1.slice(1), `${digits[i.band1]}`],
+            ["2nd digit", i.band2[0].toUpperCase() + i.band2.slice(1), `${digits[i.band2]}`],
+            ["Multiplier", i.band3[0].toUpperCase() + i.band3.slice(1), `×${multipliers[i.band3]}`],
+            ["Tolerance", i.band4[0].toUpperCase() + i.band4.slice(1), tolerances[i.band4] ?? "±5%"],
+          ],
+        },
+        chartCaption: `Reading the four bands left to right decodes to ${value >= 1000 ? `${fmtNumber(value / 1000, 2)} kΩ` : `${fmtNumber(value, 2)} Ω`} ${tolerances[i.band4] ?? "±5%"}.`,
       };
     },
     relatedSlugs: ["ohms-law-calculator"],
@@ -366,15 +508,48 @@ const everyday2: CalculatorDefinition[] = [
     ],
     calculate: (i) => {
       if (i.solveFor === "current") {
-        const val = n(i.voltage, 12) / n(i.resistance, 6);
-        return { results: [{ label: "Current", value: `${fmtNumber(val, 4)} A`, emphasis: true }] };
+        const voltage = n(i.voltage, 12);
+        const resistance = n(i.resistance, 6);
+        const val = voltage / resistance;
+        return {
+          results: [{ label: "Current", value: `${fmtNumber(val, 4)} A`, emphasis: true }],
+          steps: [`I = V ÷ R = ${fmtNumber(voltage, 2)} V ÷ ${fmtNumber(resistance, 2)} Ω = ${fmtNumber(val, 4)} A`],
+          compare: [
+            { label: "Voltage", value: voltage, displayValue: `${fmtNumber(voltage, 2)} V` },
+            { label: "Current", value: val, displayValue: `${fmtNumber(val, 4)} A`, highlight: true },
+            { label: "Resistance", value: resistance, displayValue: `${fmtNumber(resistance, 2)} Ω` },
+          ],
+          chartCaption: `V = I × R: ${fmtNumber(voltage, 2)} V = ${fmtNumber(val, 4)} A × ${fmtNumber(resistance, 2)} Ω — all three quantities are locked together by Ohm's Law.`,
+        };
       }
       if (i.solveFor === "resistance") {
-        const val = n(i.voltage, 12) / n(i.current, 2);
-        return { results: [{ label: "Resistance", value: `${fmtNumber(val, 4)} Ω`, emphasis: true }] };
+        const voltage = n(i.voltage, 12);
+        const current = n(i.current, 2);
+        const val = voltage / current;
+        return {
+          results: [{ label: "Resistance", value: `${fmtNumber(val, 4)} Ω`, emphasis: true }],
+          steps: [`R = V ÷ I = ${fmtNumber(voltage, 2)} V ÷ ${fmtNumber(current, 2)} A = ${fmtNumber(val, 4)} Ω`],
+          compare: [
+            { label: "Voltage", value: voltage, displayValue: `${fmtNumber(voltage, 2)} V` },
+            { label: "Current", value: current, displayValue: `${fmtNumber(current, 2)} A` },
+            { label: "Resistance", value: val, displayValue: `${fmtNumber(val, 4)} Ω`, highlight: true },
+          ],
+          chartCaption: `V = I × R: ${fmtNumber(voltage, 2)} V = ${fmtNumber(current, 2)} A × ${fmtNumber(val, 4)} Ω — all three quantities are locked together by Ohm's Law.`,
+        };
       }
-      const val = n(i.current, 2) * n(i.resistance, 6);
-      return { results: [{ label: "Voltage", value: `${fmtNumber(val, 4)} V`, emphasis: true }] };
+      const current = n(i.current, 2);
+      const resistance = n(i.resistance, 6);
+      const val = current * resistance;
+      return {
+        results: [{ label: "Voltage", value: `${fmtNumber(val, 4)} V`, emphasis: true }],
+        steps: [`V = I × R = ${fmtNumber(current, 2)} A × ${fmtNumber(resistance, 2)} Ω = ${fmtNumber(val, 4)} V`],
+        compare: [
+          { label: "Voltage", value: val, displayValue: `${fmtNumber(val, 4)} V`, highlight: true },
+          { label: "Current", value: current, displayValue: `${fmtNumber(current, 2)} A` },
+          { label: "Resistance", value: resistance, displayValue: `${fmtNumber(resistance, 2)} Ω` },
+        ],
+        chartCaption: `V = I × R: ${fmtNumber(val, 4)} V = ${fmtNumber(current, 2)} A × ${fmtNumber(resistance, 2)} Ω — all three quantities are locked together by Ohm's Law.`,
+      };
     },
     relatedSlugs: ["resistor-calculator", "electricity-calculator"],
   },
@@ -392,12 +567,20 @@ const everyday2: CalculatorDefinition[] = [
     ],
     calculate: (i) => {
       const kwhPerDay = (n(i.watts, 1500) * n(i.hoursPerDay, 3)) / 1000;
+      const dailyCost = kwhPerDay * n(i.costPerKwh, 0.16);
       const monthlyCost = kwhPerDay * 30 * n(i.costPerKwh, 0.16);
       return {
         results: [
           { label: "Daily Energy Use", value: `${fmtNumber(kwhPerDay, 2)} kWh` },
           { label: "Estimated Monthly Cost", value: `$${fmtNumber(monthlyCost, 2)}`, emphasis: true },
         ],
+        growthSeries: [
+          { label: "1 Day", value: dailyCost, displayValue: `$${fmtNumber(dailyCost, 2)}` },
+          { label: "1 Week", value: dailyCost * 7, displayValue: `$${fmtNumber(dailyCost * 7, 2)}` },
+          { label: "1 Month", value: dailyCost * 30, displayValue: `$${fmtNumber(dailyCost * 30, 2)}` },
+          { label: "1 Year", value: dailyCost * 365, displayValue: `$${fmtNumber(dailyCost * 365, 2)}` },
+        ],
+        chartCaption: `Running this appliance ${fmtNumber(n(i.hoursPerDay, 3), 1)} hrs/day quietly adds up to about $${fmtNumber(dailyCost * 365, 2)} a year at your electricity rate.`,
       };
     },
     relatedSlugs: ["ohms-law-calculator"],
@@ -426,6 +609,18 @@ const everyday2: CalculatorDefinition[] = [
           { label: "Voltage at Load", value: `${fmtNumber(n(i.systemVoltage, 120) - drop, 2)} V` },
         ],
         notes: [pct > 3 ? "Over the commonly recommended 3% limit — consider a thicker gauge wire." : "Within the commonly recommended 3% voltage drop limit."],
+        gauge: {
+          value: pct,
+          min: 0,
+          max: 10,
+          valueLabel: `${fmtNumber(pct, 2)}%`,
+          zones: [
+            { label: "Good", to: 3, barClass: "bg-teal-500 dark:bg-teal-400", textClass: "text-teal-600 dark:text-teal-400" },
+            { label: "Marginal", to: 5, barClass: "bg-amber-400 dark:bg-amber-500", textClass: "text-amber-600 dark:text-amber-400" },
+            { label: "Excessive", to: 10, barClass: "bg-red-400 dark:bg-red-500", textClass: "text-red-600 dark:text-red-400" },
+          ],
+        },
+        chartCaption: `${fmtNumber(pct, 2)}% drop is ${pct <= 3 ? "within" : pct <= 5 ? "past" : "well past"} the commonly recommended 3% ceiling for branch circuits — the higher this reads, the more a thicker gauge wire pays for itself in delivered power.`,
       };
     },
     relatedSlugs: ["ohms-law-calculator"],
@@ -448,8 +643,31 @@ const everyday2: CalculatorDefinition[] = [
     ],
     calculate: (i) => {
       const factors: Record<string, number> = { mild: 20, moderate: 25, hot: 30, veryHot: 35 };
-      const btu = n(i.areaSqFt, 300) * (factors[i.climate] ?? 25);
-      return { results: [{ label: "Recommended BTU Capacity", value: fmtNumber(btu, 0), emphasis: true }] };
+      const factor = factors[i.climate] ?? 25;
+      const btu = n(i.areaSqFt, 300) * factor;
+      return {
+        results: [{ label: "Recommended BTU Capacity", value: fmtNumber(btu, 0), emphasis: true }],
+        steps: [
+          `Room area = ${fmtNumber(n(i.areaSqFt, 300), 0)} sq ft`,
+          `Climate factor for your selection = ${factor} BTU per sq ft`,
+          `BTU capacity = ${fmtNumber(n(i.areaSqFt, 300), 0)} × ${factor} = ${fmtNumber(btu, 0)} BTU`,
+        ],
+        notes: ["Undersizing leaves a unit that runs constantly and never quite cools/heats the room; oversizing short-cycles and wastes energy without improving comfort — aim close to this number rather than rounding up 'to be safe'."],
+        gauge: {
+          value: btu,
+          min: 0,
+          max: 60000,
+          valueLabel: `${fmtNumber(btu, 0)} BTU`,
+          zones: [
+            { label: "Small room", to: 8000, barClass: "bg-sky-400 dark:bg-sky-500", textClass: "text-sky-600 dark:text-sky-400" },
+            { label: "Medium room", to: 14000, barClass: "bg-teal-500 dark:bg-teal-400", textClass: "text-teal-600 dark:text-teal-400" },
+            { label: "Large room (~2 ton)", to: 24000, barClass: "bg-amber-400 dark:bg-amber-500", textClass: "text-amber-600 dark:text-amber-400" },
+            { label: "Multi-room (~3 ton)", to: 36000, barClass: "bg-orange-500 dark:bg-orange-500", textClass: "text-orange-600 dark:text-orange-400" },
+            { label: "Whole floor (~5 ton)", to: 60000, barClass: "bg-red-500 dark:bg-red-500", textClass: "text-red-600 dark:text-red-400" },
+          ],
+        },
+        chartCaption: `HVAC equipment is conventionally sized in "tons" of cooling capacity, where 1 ton = 12,000 BTU/h — your ${fmtNumber(btu, 0)} BTU need works out to roughly ${fmtNumber(btu / 12000, 1)} tons.`,
+      };
     },
     relatedSlugs: ["square-footage-calculator"],
   },
@@ -466,10 +684,28 @@ const everyday2: CalculatorDefinition[] = [
       { name: "pricePerSqFt", label: "Price Per Sq Ft (optional)", type: "number", unit: "$", defaultValue: 0, min: 0 },
     ],
     calculate: (i) => {
-      const area = n(i.lengthFt, 15) * n(i.widthFt, 12);
+      const length = n(i.lengthFt, 15);
+      const width = n(i.widthFt, 12);
+      const area = length * width;
       const results = [{ label: "Square Footage", value: `${fmtNumber(area, 2)} sq ft`, emphasis: true }];
-      if (n(i.pricePerSqFt) > 0) results.push({ label: "Estimated Cost", value: `$${fmtNumber(area * n(i.pricePerSqFt), 2)}`, emphasis: true });
-      return { results };
+      const steps = [`Area = length × width = ${fmtNumber(length, 2)} ft × ${fmtNumber(width, 2)} ft = ${fmtNumber(area, 2)} sq ft`];
+      const tableRows = [
+        ["Length", `${fmtNumber(length, 2)} ft`],
+        ["Width", `${fmtNumber(width, 2)} ft`],
+        ["Area", `${fmtNumber(area, 2)} sq ft`],
+      ];
+      if (n(i.pricePerSqFt) > 0) {
+        const cost = area * n(i.pricePerSqFt);
+        results.push({ label: "Estimated Cost", value: `$${fmtNumber(cost, 2)}`, emphasis: true });
+        steps.push(`Cost = ${fmtNumber(area, 2)} sq ft × $${fmtNumber(n(i.pricePerSqFt), 2)}/sq ft = $${fmtNumber(cost, 2)}`);
+        tableRows.push(["Estimated Cost", `$${fmtNumber(cost, 2)}`]);
+      }
+      return {
+        results,
+        steps,
+        table: { headers: ["Dimension", "Value"], rows: tableRows },
+        chartCaption: `A single rectangle: ${fmtNumber(length, 2)} ft × ${fmtNumber(width, 2)} ft = ${fmtNumber(area, 2)} sq ft.`,
+      };
     },
     relatedSlugs: ["area-calculator", "tile-calculator"],
   },
@@ -490,7 +726,9 @@ const everyday2: CalculatorDefinition[] = [
       const total = hours.reduce((a, b) => a + b, 0);
       const regular = Math.min(40, total);
       const overtime = Math.max(0, total - 40);
-      const pay = regular * n(i.hourlyRate, 22) + overtime * n(i.hourlyRate, 22) * 1.5;
+      const regularPay = regular * n(i.hourlyRate, 22);
+      const overtimePay = overtime * n(i.hourlyRate, 22) * 1.5;
+      const pay = regularPay + overtimePay;
       return {
         results: [
           { label: "Total Hours", value: fmtNumber(total, 2), emphasis: true },
@@ -498,6 +736,17 @@ const everyday2: CalculatorDefinition[] = [
           { label: "Overtime Hours", value: fmtNumber(overtime, 2) },
           { label: "Total Pay", value: `$${fmtNumber(pay, 2)}`, emphasis: true },
         ],
+        breakdown:
+          overtime > 0
+            ? [
+                { label: "Regular Pay", value: regularPay, displayValue: `$${fmtNumber(regularPay, 2)}` },
+                { label: "Overtime Pay (1.5×)", value: overtimePay, displayValue: `$${fmtNumber(overtimePay, 2)}` },
+              ]
+            : undefined,
+        chartCaption:
+          overtime > 0
+            ? `Overtime hours are paid at 1.5×, so your ${fmtNumber(overtime, 2)} OT hours contribute ${fmtNumber((overtimePay / pay) * 100, 0)}% of your total pay despite being a smaller share of your hours.`
+            : undefined,
       };
     },
     relatedSlugs: ["hours-calculator"],
@@ -524,11 +773,22 @@ const everyday2: CalculatorDefinition[] = [
       if (minutes + diffMinutes >= 1440) dayShift = 1;
       const h = Math.floor(total / 60);
       const m = Math.round(total % 60);
+      const destLabel = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+      const hourDiff = diffMinutes / 60;
       return {
         results: [
-          { label: "Converted Time", value: `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`, emphasis: true },
+          { label: "Converted Time", value: destLabel, emphasis: true },
           { label: "Day", value: dayShift === 0 ? "Same day" : dayShift > 0 ? "Next day" : "Previous day" },
         ],
+        steps: [
+          `Offset difference = target (${n(i.targetOffset, 1) >= 0 ? "+" : ""}${n(i.targetOffset, 1)}) − source (${n(i.sourceOffset, -5) >= 0 ? "+" : ""}${n(i.sourceOffset, -5)}) = ${hourDiff >= 0 ? "+" : ""}${fmtNumber(hourDiff, 1)} hours`,
+          `${i.time} + ${fmtNumber(hourDiff, 1)}h = ${destLabel}${dayShift !== 0 ? ` (${dayShift > 0 ? "next" : "previous"} day)` : ""}`,
+        ],
+        compare: [
+          { label: "Origin Time", value: minutes / 60, displayValue: i.time },
+          { label: "Destination Time", value: total / 60, displayValue: destLabel, highlight: true },
+        ],
+        chartCaption: `Same moment, different clocks — the destination reads ${fmtNumber(Math.abs(hourDiff), 1)} hour${Math.abs(hourDiff) === 1 ? "" : "s"} ${hourDiff >= 0 ? "ahead of" : "behind"} the origin on the 24-hour clock.`,
       };
     },
     relatedSlugs: ["time-duration-calculator"],
@@ -547,9 +807,43 @@ const everyday2: CalculatorDefinition[] = [
       { name: "density", label: "Density", type: "number", unit: "kg/m³", defaultValue: 1000, min: 0.0000001, showIf: (i) => i.solveFor !== "density" },
     ],
     calculate: (i) => {
-      if (i.solveFor === "mass") return { results: [{ label: "Mass", value: `${fmtNumber(n(i.density, 1000) * n(i.volume, 0.01), 4)} kg`, emphasis: true }] };
-      if (i.solveFor === "volume") return { results: [{ label: "Volume", value: `${fmtNumber(n(i.mass, 10) / n(i.density, 1000), 6)} m³`, emphasis: true }] };
-      return { results: [{ label: "Density", value: `${fmtNumber(n(i.mass, 10) / n(i.volume, 0.01), 4)} kg/m³`, emphasis: true }] };
+      const waterGauge = (densityValue: number) => ({
+        gauge: {
+          value: densityValue,
+          min: 0,
+          max: 2000,
+          valueLabel: `${fmtNumber(densityValue, 1)} kg/m³`,
+          zones: [
+            { label: "Floats in water", to: 1000, barClass: "bg-sky-400 dark:bg-sky-500", textClass: "text-sky-600 dark:text-sky-400" },
+            { label: "Sinks in water", to: 2000, barClass: "bg-indigo-500 dark:bg-indigo-500", textClass: "text-indigo-600 dark:text-indigo-400" },
+          ],
+        },
+        chartCaption: `Water is 1,000 kg/m³ (1 g/cm³) — at ${fmtNumber(densityValue, 1)} kg/m³, this substance would ${densityValue < 1000 ? "float on water" : densityValue > 1000 ? "sink in water" : "neither float nor sink — it matches water's density exactly"}.`,
+      });
+      if (i.solveFor === "mass") {
+        const densityInput = n(i.density, 1000);
+        const mass = densityInput * n(i.volume, 0.01);
+        return {
+          results: [{ label: "Mass", value: `${fmtNumber(mass, 4)} kg`, emphasis: true }],
+          steps: [`Mass = density × volume = ${fmtNumber(densityInput, 2)} kg/m³ × ${fmtNumber(n(i.volume, 0.01), 4)} m³ = ${fmtNumber(mass, 4)} kg`],
+          ...waterGauge(densityInput),
+        };
+      }
+      if (i.solveFor === "volume") {
+        const densityInput = n(i.density, 1000);
+        const volume = n(i.mass, 10) / densityInput;
+        return {
+          results: [{ label: "Volume", value: `${fmtNumber(volume, 6)} m³`, emphasis: true }],
+          steps: [`Volume = mass ÷ density = ${fmtNumber(n(i.mass, 10), 2)} kg ÷ ${fmtNumber(densityInput, 2)} kg/m³ = ${fmtNumber(volume, 6)} m³`],
+          ...waterGauge(densityInput),
+        };
+      }
+      const density = n(i.mass, 10) / n(i.volume, 0.01);
+      return {
+        results: [{ label: "Density", value: `${fmtNumber(density, 4)} kg/m³`, emphasis: true }],
+        steps: [`Density = mass ÷ volume = ${fmtNumber(n(i.mass, 10), 2)} kg ÷ ${fmtNumber(n(i.volume, 0.01), 4)} m³ = ${fmtNumber(density, 4)} kg/m³`],
+        ...waterGauge(density),
+      };
     },
     relatedSlugs: ["molarity-calculator"],
   },
@@ -570,7 +864,27 @@ const everyday2: CalculatorDefinition[] = [
     calculate: (i) => {
       const moles = i.mode === "mass" ? n(i.mass, 29.25) / n(i.molarMass, 58.44) : n(i.moles, 0.5);
       const molarity = moles / n(i.volumeL, 1);
-      return { results: [{ label: "Molarity", value: `${fmtNumber(molarity, 4)} mol/L`, emphasis: true }] };
+      const gaugeMax = molarity > 1.5 ? Math.ceil(molarity * 1.2) : 2;
+      const concLabel = molarity < 0.1 ? "Dilute" : molarity < 1 ? "Moderate" : "Concentrated";
+      return {
+        results: [{ label: "Molarity", value: `${fmtNumber(molarity, 4)} mol/L`, emphasis: true }],
+        steps: [
+          ...(i.mode === "mass" ? [`Moles = mass ÷ molar mass = ${fmtNumber(n(i.mass, 29.25), 2)} g ÷ ${fmtNumber(n(i.molarMass, 58.44), 2)} g/mol = ${fmtNumber(moles, 4)} mol`] : []),
+          `Molarity = moles ÷ volume = ${fmtNumber(moles, 4)} mol ÷ ${fmtNumber(n(i.volumeL, 1), 3)} L = ${fmtNumber(molarity, 4)} mol/L`,
+        ],
+        gauge: {
+          value: molarity,
+          min: 0,
+          max: gaugeMax,
+          valueLabel: `${fmtNumber(molarity, 3)} M`,
+          zones: [
+            { label: "Dilute", to: 0.1, barClass: "bg-sky-400 dark:bg-sky-500", textClass: "text-sky-600 dark:text-sky-400" },
+            { label: "Moderate", to: 1, barClass: "bg-amber-400 dark:bg-amber-500", textClass: "text-amber-600 dark:text-amber-400" },
+            { label: "Concentrated", to: gaugeMax, barClass: "bg-red-400 dark:bg-red-500", textClass: "text-red-600 dark:text-red-400" },
+          ],
+        },
+        chartCaption: `At ${fmtNumber(molarity, 3)} mol/L, this solution reads as "${concLabel}" — general chemistry commonly treats solutions under 0.1 M as dilute and over 1 M as concentrated.`,
+      };
     },
     relatedSlugs: ["molecular-weight-calculator"],
   },
@@ -588,6 +902,12 @@ const everyday2: CalculatorDefinition[] = [
       return {
         results: [{ label: "Molecular Weight", value: `${fmtNumber(result.mw, 3)} g/mol`, emphasis: true }],
         steps: result.breakdown,
+        breakdown: result.elements.map((e) => ({
+          label: `${e.symbol}${e.count > 1 ? e.count : ""}`,
+          value: e.contribution,
+          displayValue: `${fmtNumber(e.contribution, 3)} g/mol`,
+        })),
+        chartCaption: `Each element's share of the ${fmtNumber(result.mw, 3)} g/mol total — the heaviest contributor is ${result.elements.reduce((a, b) => (b.contribution > a.contribution ? b : a)).symbol}.`,
       };
     },
     relatedSlugs: ["molarity-calculator"],
@@ -608,11 +928,26 @@ const everyday2: CalculatorDefinition[] = [
       if (i.mode === "fromRoman") {
         const value = fromRoman(i.roman || "");
         if (value === null) return { results: [], error: "Enter a valid Roman numeral using only I, V, X, L, C, D, M." };
-        return { results: [{ label: "Number", value: fmtNumber(value, 0), emphasis: true }] };
+        return {
+          results: [{ label: "Number", value: fmtNumber(value, 0), emphasis: true }],
+          notes: ["Read left to right, adding each symbol's value — except when a smaller symbol sits before a larger one (like IV or IX), which subtracts instead of adds."],
+        };
       }
       const num = Math.round(n(i.number, 1994));
       if (num < 1 || num > 3999) return { results: [], error: "Enter a number between 1 and 3999." };
-      return { results: [{ label: "Roman Numeral", value: toRoman(num), emphasis: true }] };
+      const roman = toRoman(num);
+      const parts: string[] = [];
+      let remaining = num;
+      const table: [number, string][] = [[1000, "M"], [900, "CM"], [500, "D"], [400, "CD"], [100, "C"], [90, "XC"], [50, "L"], [40, "XL"], [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
+      for (const [value, symbol] of table) {
+        let count = 0;
+        while (remaining >= value) { remaining -= value; count++; }
+        if (count > 0) parts.push(`${symbol}${count > 1 ? ` ×${count}` : ""} (${value * count})`);
+      }
+      return {
+        results: [{ label: "Roman Numeral", value: roman, emphasis: true }],
+        steps: [`${num} breaks down into: ${parts.join(" + ")}`, `Assembled: ${roman}`],
+      };
     },
     relatedSlugs: ["base-converter"],
   },
@@ -631,14 +966,20 @@ const everyday2: CalculatorDefinition[] = [
     calculate: (i) => {
       const scores = (i.scores || "").split(",").map((s) => Number(s.trim())).filter((v) => Number.isFinite(v));
       if (scores.length === 0) return { results: [], error: "Enter at least one round score." };
-      const differentials = scores.map((s) => ((s - n(i.courseRating, 72)) * 113) / n(i.slopeRating, 113));
-      differentials.sort((a, b) => a - b);
+      const differentialsInOrder = scores.map((s) => ((s - n(i.courseRating, 72)) * 113) / n(i.slopeRating, 113));
+      const differentials = [...differentialsInOrder].sort((a, b) => a - b);
       const useCount = Math.max(1, Math.ceil(differentials.length / 2));
       const best = differentials.slice(0, useCount);
       const index = (best.reduce((a, b) => a + b, 0) / best.length) * 0.96;
       return {
         results: [{ label: "Estimated Handicap Index", value: fmtNumber(index, 1), emphasis: true }],
         notes: ["A simplified estimate using your best-half differentials — the official USGA formula uses more detailed round-count tables."],
+        growthSeries: scores.map((s, idx) => ({
+          label: `Round ${idx + 1}`,
+          value: s,
+          displayValue: `Shot ${s} (diff. ${fmtNumber(differentialsInOrder[idx], 1)})`,
+        })),
+        chartCaption: `Your score differential per round, in the order you played them — the handicap index uses only your best ${useCount} of these ${differentials.length}, not a straight average of every round.`,
       };
     },
     relatedSlugs: [],
@@ -667,12 +1008,26 @@ const everyday2: CalculatorDefinition[] = [
         const bed = parseClock(i.bedTime);
         if (bed === null) return { results: [], error: "Enter your bedtime as HH:MM in 24-hour format." };
         const results = [4, 5, 6].map((cycles) => ({ label: `${cycles} cycles (${(cycles * 1.5).toFixed(1)}h sleep)`, value: fmtTime(bed + fallAsleepMinutes + cycles * 90), emphasis: cycles === 5 }));
-        return { results };
+        return {
+          results,
+          table: {
+            headers: ["Sleep Cycles", "Total Sleep", "Wake-Up Time"],
+            rows: [4, 5, 6].map((cycles) => [`${cycles} cycles`, `${(cycles * 1.5).toFixed(1)} hrs`, fmtTime(bed + fallAsleepMinutes + cycles * 90)]),
+          },
+          chartCaption: "Waking up right as a 90-minute cycle ends (rather than mid-cycle) is what actually makes you feel rested — more total sleep isn't always the better option here.",
+        };
       }
       const wake = parseClock(i.time);
       if (wake === null) return { results: [], error: "Enter your wake-up time as HH:MM in 24-hour format." };
       const results = [6, 5, 4].map((cycles) => ({ label: `${cycles} cycles (${(cycles * 1.5).toFixed(1)}h sleep)`, value: fmtTime(wake - fallAsleepMinutes - cycles * 90), emphasis: cycles === 5 }));
-      return { results };
+      return {
+        results,
+        table: {
+          headers: ["Sleep Cycles", "Total Sleep", "Bedtime"],
+          rows: [6, 5, 4].map((cycles) => [`${cycles} cycles`, `${(cycles * 1.5).toFixed(1)} hrs`, fmtTime(wake - fallAsleepMinutes - cycles * 90)]),
+        },
+        chartCaption: "Pick the bedtime that lines up with a full number of 90-minute cycles before your alarm — falling asleep mid-cycle is what makes an alarm feel brutal even after 'enough' hours.",
+      };
     },
     relatedSlugs: ["age-calculator"],
   },
@@ -688,13 +1043,20 @@ const everyday2: CalculatorDefinition[] = [
       { name: "wastePercent", label: "Waste Factor", type: "number", unit: "%", defaultValue: 10, min: 0, max: 50 },
     ],
     calculate: (i) => {
+      const baseSquares = n(i.roofAreaSqFt, 1800) / 100;
       const areaWithWaste = n(i.roofAreaSqFt, 1800) * (1 + n(i.wastePercent, 10) / 100);
       const squares = areaWithWaste / 100;
+      const wasteSquares = squares - baseSquares;
       return {
         results: [
           { label: "Roofing Squares Needed", value: fmtNumber(squares, 2), emphasis: true },
           { label: "Shingle Bundles (≈3/square)", value: fmtNumber(Math.ceil(squares * 3), 0) },
         ],
+        breakdown: [
+          { label: "Base Roof Area", value: baseSquares, displayValue: `${fmtNumber(baseSquares, 2)} squares` },
+          { label: "Waste Allowance", value: wasteSquares, displayValue: `${fmtNumber(wasteSquares, 2)} squares` },
+        ],
+        chartCaption: `Your ${fmtNumber(n(i.wastePercent, 10), 0)}% waste factor adds ${fmtNumber(wasteSquares, 2)} extra squares on top of the roof's actual area, to cover cuts, overlaps and hips/valleys.`,
       };
     },
     relatedSlugs: ["square-footage-calculator", "tile-calculator"],
@@ -716,8 +1078,17 @@ const everyday2: CalculatorDefinition[] = [
     calculate: (i) => {
       const roomArea = n(i.roomLengthFt, 12) * n(i.roomWidthFt, 10);
       const tileAreaSqFt = (n(i.tileLengthIn, 12) * n(i.tileWidthIn, 12)) / 144;
-      const tiles = (roomArea / tileAreaSqFt) * (1 + n(i.wastePercent, 10) / 100);
-      return { results: [{ label: "Tiles Needed", value: fmtNumber(Math.ceil(tiles), 0), emphasis: true }] };
+      const baseTiles = roomArea / tileAreaSqFt;
+      const tiles = baseTiles * (1 + n(i.wastePercent, 10) / 100);
+      const wasteTiles = tiles - baseTiles;
+      return {
+        results: [{ label: "Tiles Needed", value: fmtNumber(Math.ceil(tiles), 0), emphasis: true }],
+        breakdown: [
+          { label: "Tiles to Cover Room", value: baseTiles, displayValue: `${fmtNumber(Math.ceil(baseTiles), 0)} tiles` },
+          { label: "Waste / Cut Allowance", value: wasteTiles, displayValue: `${fmtNumber(Math.ceil(wasteTiles), 0)} tiles` },
+        ],
+        chartCaption: `Buying only the base tile count leaves nothing for cuts around edges and breakage — the ${fmtNumber(n(i.wastePercent, 10), 0)}% waste allowance covers that so you don't have to make a second trip.`,
+      };
     },
     relatedSlugs: ["square-footage-calculator", "roofing-calculator"],
   },
@@ -740,6 +1111,14 @@ const everyday2: CalculatorDefinition[] = [
           { label: "Mulch Needed", value: `${fmtNumber(cubicYards, 2)} cubic yards`, emphasis: true },
           { label: "2 cu ft Bags", value: fmtNumber(Math.ceil(bags2cf), 0) },
         ],
+        table: {
+          headers: ["Buying Option", "Quantity"],
+          rows: [
+            ["Bulk (by the yard)", `${fmtNumber(cubicYards, 2)} cubic yards`],
+            ["2 cu ft bags", `${fmtNumber(Math.ceil(bags2cf), 0)} bags`],
+          ],
+        },
+        chartCaption: "Bulk delivery is usually cheaper per cubic yard for larger beds; bagged mulch is easier to haul in a car for small or oddly-shaped beds — both rows describe the same total volume.",
       };
     },
     relatedSlugs: ["gravel-calculator", "concrete-calculator"],
@@ -763,6 +1142,14 @@ const everyday2: CalculatorDefinition[] = [
           { label: "Gravel Needed", value: `${fmtNumber(cubicYards, 2)} cubic yards`, emphasis: true },
           { label: "Approx. Weight", value: `${fmtNumber(tons, 2)} tons` },
         ],
+        table: {
+          headers: ["Measure", "Quantity"],
+          rows: [
+            ["Volume", `${fmtNumber(cubicYards, 2)} cubic yards`],
+            ["Weight (≈1.4 tons/yd³)", `${fmtNumber(tons, 2)} tons`],
+          ],
+        },
+        chartCaption: "Gravel suppliers usually sell and deliver by weight (tons) even though you're planning by volume — both numbers describe the same pile.",
       };
     },
     relatedSlugs: ["mulch-calculator", "concrete-calculator"],
@@ -775,14 +1162,31 @@ const everyday2: CalculatorDefinition[] = [
     seoDescription: "Calculate the wind chill temperature using the National Weather Service formula.",
     formulaSummary: "NWS wind chill formula",
     fields: [
-      { name: "tempF", label: "Air Temperature", type: "number", unit: "°F", defaultValue: 25, max: 50 },
+      { name: "tempF", label: "Air Temperature", type: "number", unit: "°F", defaultValue: 25, max: 50, convertPair: fCPair("tempF") },
       { name: "windMph", label: "Wind Speed", type: "number", unit: "mph", defaultValue: 15, min: 3 },
     ],
     calculate: (i) => {
       const t = n(i.tempF, 25);
       const v = Math.max(3, n(i.windMph, 15));
       const wc = 35.74 + 0.6215 * t - 35.75 * Math.pow(v, 0.16) + 0.4275 * t * Math.pow(v, 0.16);
-      return { results: [{ label: "Wind Chill", value: `${fmtNumber(wc, 1)}°F`, emphasis: true }], notes: ["Valid for temperatures at or below 50°F and wind speeds of 3+ mph."] };
+      return {
+        results: [{ label: "Wind Chill", value: `${fmtNumber(wc, 1)}°F`, emphasis: true }],
+        notes: ["Valid for temperatures at or below 50°F and wind speeds of 3+ mph."],
+        gauge: {
+          value: wc,
+          min: -60,
+          max: 50,
+          valueLabel: `${fmtNumber(wc, 1)}°F`,
+          zones: [
+            { label: "Extreme (frostbite <5 min)", to: -35, barClass: "bg-red-500 dark:bg-red-500", textClass: "text-red-600 dark:text-red-400" },
+            { label: "High Risk (frostbite <10 min)", to: -19, barClass: "bg-orange-400 dark:bg-orange-500", textClass: "text-orange-600 dark:text-orange-400" },
+            { label: "Increasing Risk (frostbite <30 min)", to: 0, barClass: "bg-amber-400 dark:bg-amber-500", textClass: "text-amber-600 dark:text-amber-400" },
+            { label: "Cold", to: 32, barClass: "bg-sky-400 dark:bg-sky-500", textClass: "text-sky-600 dark:text-sky-400" },
+            { label: "Mild", to: 50, barClass: "bg-teal-500 dark:bg-teal-400", textClass: "text-teal-600 dark:text-teal-400" },
+          ],
+        },
+        chartCaption: wc < 0 ? `At ${fmtNumber(wc, 1)}°F, exposed skin is at real risk of frostbite — the colder it reads, the faster that risk sets in.` : `At ${fmtNumber(wc, 1)}°F it feels cold, but this is outside the range where frostbite is an immediate concern.`,
+      };
     },
     relatedSlugs: ["heat-index-calculator", "dew-point-calculator"],
   },
@@ -794,7 +1198,7 @@ const everyday2: CalculatorDefinition[] = [
     seoDescription: "Calculate the heat index — how hot it feels when relative humidity is factored in with air temperature.",
     formulaSummary: "NWS Rothfusz regression",
     fields: [
-      { name: "tempF", label: "Air Temperature", type: "number", unit: "°F", defaultValue: 95, min: 80 },
+      { name: "tempF", label: "Air Temperature", type: "number", unit: "°F", defaultValue: 95, min: 80, convertPair: fCPair("tempF") },
       { name: "humidityPercent", label: "Relative Humidity", type: "number", unit: "%", defaultValue: 60, min: 0, max: 100 },
     ],
     calculate: (i) => {
@@ -803,7 +1207,23 @@ const everyday2: CalculatorDefinition[] = [
       const hi =
         -42.379 + 2.04901523 * T + 10.14333127 * R - 0.22475541 * T * R - 0.00683783 * T * T - 0.05481717 * R * R +
         0.00122874 * T * T * R + 0.00085282 * T * R * R - 0.00000199 * T * T * R * R;
-      return { results: [{ label: "Heat Index", value: `${fmtNumber(hi, 1)}°F`, emphasis: true }], notes: ["Most accurate for temperatures at or above 80°F and humidity at or above 40%."] };
+      return {
+        results: [{ label: "Heat Index", value: `${fmtNumber(hi, 1)}°F`, emphasis: true }],
+        notes: ["Most accurate for temperatures at or above 80°F and humidity at or above 40%."],
+        gauge: {
+          value: hi,
+          min: 80,
+          max: 135,
+          valueLabel: `${fmtNumber(hi, 1)}°F`,
+          zones: [
+            { label: "Caution", to: 90, barClass: "bg-amber-300 dark:bg-amber-500", textClass: "text-amber-600 dark:text-amber-400" },
+            { label: "Extreme Caution", to: 103, barClass: "bg-amber-500 dark:bg-amber-600", textClass: "text-amber-700 dark:text-amber-400" },
+            { label: "Danger", to: 125, barClass: "bg-orange-500 dark:bg-orange-500", textClass: "text-orange-600 dark:text-orange-400" },
+            { label: "Extreme Danger", to: 135, barClass: "bg-red-500 dark:bg-red-500", textClass: "text-red-600 dark:text-red-400" },
+          ],
+        },
+        chartCaption: `The National Weather Service classifies ${fmtNumber(hi, 1)}°F as "${hi < 90 ? "Caution" : hi < 103 ? "Extreme Caution" : hi < 125 ? "Danger" : "Extreme Danger"}" — heatstroke risk rises sharply as this number climbs.`,
+      };
     },
     relatedSlugs: ["wind-chill-calculator", "dew-point-calculator"],
   },
@@ -815,7 +1235,7 @@ const everyday2: CalculatorDefinition[] = [
     seoDescription: "Calculate the dew point temperature from air temperature and relative humidity using the Magnus formula.",
     formulaSummary: "Magnus formula",
     fields: [
-      { name: "tempF", label: "Air Temperature", type: "number", unit: "°F", defaultValue: 75 },
+      { name: "tempF", label: "Air Temperature", type: "number", unit: "°F", defaultValue: 75, convertPair: fCPair("tempF") },
       { name: "humidityPercent", label: "Relative Humidity", type: "number", unit: "%", defaultValue: 55, min: 1, max: 100 },
     ],
     calculate: (i) => {
@@ -825,7 +1245,25 @@ const everyday2: CalculatorDefinition[] = [
       const gamma = (a * tC) / (b + tC) + Math.log(rh / 100);
       const dewC = (b * gamma) / (a - gamma);
       const dewF = (dewC * 9) / 5 + 32;
-      return { results: [{ label: "Dew Point", value: `${fmtNumber(dewF, 1)}°F (${fmtNumber(dewC, 1)}°C)`, emphasis: true }] };
+      const comfortLabel = dewF < 50 ? "Dry" : dewF < 60 ? "Comfortable" : dewF < 65 ? "Slightly Humid" : dewF < 70 ? "Humid" : dewF < 75 ? "Very Humid" : "Oppressive";
+      return {
+        results: [{ label: "Dew Point", value: `${fmtNumber(dewF, 1)}°F (${fmtNumber(dewC, 1)}°C)`, emphasis: true }],
+        gauge: {
+          value: dewF,
+          min: 30,
+          max: 85,
+          valueLabel: `${fmtNumber(dewF, 1)}°F`,
+          zones: [
+            { label: "Dry", to: 50, barClass: "bg-sky-400 dark:bg-sky-500", textClass: "text-sky-600 dark:text-sky-400" },
+            { label: "Comfortable", to: 60, barClass: "bg-teal-500 dark:bg-teal-400", textClass: "text-teal-600 dark:text-teal-400" },
+            { label: "Slightly Humid", to: 65, barClass: "bg-amber-300 dark:bg-amber-500", textClass: "text-amber-600 dark:text-amber-400" },
+            { label: "Humid", to: 70, barClass: "bg-amber-500 dark:bg-amber-600", textClass: "text-amber-700 dark:text-amber-400" },
+            { label: "Very Humid", to: 75, barClass: "bg-orange-500 dark:bg-orange-500", textClass: "text-orange-600 dark:text-orange-400" },
+            { label: "Oppressive", to: 85, barClass: "bg-red-500 dark:bg-red-500", textClass: "text-red-600 dark:text-red-400" },
+          ],
+        },
+        chartCaption: `Unlike relative humidity, dew point doesn't change with temperature swings — ${fmtNumber(dewF, 1)}°F reads as "${comfortLabel}" no matter how hot or cold the air itself is.`,
+      };
     },
     relatedSlugs: ["heat-index-calculator", "wind-chill-calculator"],
   },
@@ -848,7 +1286,16 @@ const everyday2: CalculatorDefinition[] = [
       const seconds = sizeBits / speedBits;
       const mins = Math.floor(seconds / 60);
       const secs = Math.round(seconds % 60);
-      return { results: [{ label: "Estimated Download Time", value: seconds < 60 ? `${fmtNumber(seconds, 1)} sec` : `${mins} min ${secs} sec`, emphasis: true }] };
+      const fmtSecs = (s: number) => (s < 60 ? `${fmtNumber(s, 1)} sec` : `${Math.floor(s / 60)} min ${Math.round(s % 60)} sec`);
+      return {
+        results: [{ label: "Estimated Download Time", value: seconds < 60 ? `${fmtNumber(seconds, 1)} sec` : `${mins} min ${secs} sec`, emphasis: true }],
+        growthSeries: [0.25, 0.5, 0.75, 1].map((frac) => ({
+          label: `${frac * 100}%`,
+          value: seconds * frac,
+          displayValue: fmtSecs(seconds * frac),
+        })),
+        chartCaption: `Progress through the download at a steady ${n(i.speed, 100)} ${i.speedUnit} connection — real-world speeds fluctuate, so treat this as a best case.`,
+      };
     },
     relatedSlugs: [],
   },
@@ -866,7 +1313,24 @@ const everyday2: CalculatorDefinition[] = [
     calculate: (i) => {
       try {
         const result = i.mode === "decode" ? utf8SafeDecode(i.text || "") : utf8SafeEncode(i.text || "");
-        return { results: [{ label: "Output", value: result, emphasis: true }] };
+        const inputLen = (i.text || "").length;
+        const outputLen = result.length;
+        return {
+          results: [{ label: "Output", value: result, emphasis: true }],
+          notes: [
+            i.mode === "decode"
+              ? `Decoded ${inputLen} Base64 characters back into ${outputLen} characters of text.`
+              : `Base64 packs 3 bytes into 4 characters, so encoded text runs about 33% longer — your ${inputLen}-character input became ${outputLen} characters.`,
+          ],
+          compare: [
+            { label: "Input Characters", value: inputLen, displayValue: `${inputLen}` },
+            { label: "Output Characters", value: outputLen, displayValue: `${outputLen}`, highlight: outputLen >= inputLen },
+          ],
+          chartCaption:
+            i.mode === "decode"
+              ? `Decoding shrank ${inputLen} Base64 characters down to ${outputLen} characters of plain text.`
+              : `Encoding grew ${inputLen} input characters into ${outputLen} output characters — Base64's 3-bytes-to-4-characters packing adds roughly 33% length.`,
+        };
       } catch {
         return { results: [], error: i.mode === "decode" ? "That doesn't look like valid Base64." : "Couldn't encode that input." };
       }
@@ -887,7 +1351,26 @@ const everyday2: CalculatorDefinition[] = [
     calculate: (i) => {
       try {
         const result = i.mode === "decode" ? decodeURIComponent(i.text || "") : encodeURIComponent(i.text || "");
-        return { results: [{ label: "Output", value: result, emphasis: true }] };
+        const inputLen = (i.text || "").length;
+        const outputLen = result.length;
+        return {
+          results: [{ label: "Output", value: result, emphasis: true }],
+          notes: [
+            i.mode === "decode"
+              ? "Percent-encoded sequences like %20 or %26 are converted back to their original characters (space, &, etc)."
+              : "Characters unsafe in a URL (spaces, &, ?, #, and others) are replaced with a % followed by their hex code, so the text can travel safely inside a query string.",
+          ],
+          compare: [
+            { label: "Input Characters", value: inputLen, displayValue: `${inputLen}` },
+            { label: "Output Characters", value: outputLen, displayValue: `${outputLen}`, highlight: outputLen >= inputLen },
+          ],
+          chartCaption:
+            outputLen === inputLen
+              ? `${inputLen} characters in, ${outputLen} out — nothing in this input needed percent-encoding.`
+              : i.mode === "decode"
+                ? `Decoding shrank ${inputLen} percent-encoded characters down to ${outputLen} characters of plain text.`
+                : `Encoding grew ${inputLen} input characters into ${outputLen} output characters as unsafe characters were replaced with %-escapes.`,
+        };
       } catch {
         return { results: [], error: "Couldn't decode that input — it may not be validly percent-encoded." };
       }
@@ -914,6 +1397,17 @@ const everyday2: CalculatorDefinition[] = [
           { label: "Foot Length", value: `${fmtNumber(cm, 1)} cm` },
         ],
         notes: ["Approximate — exact sizing varies by brand and shoe last. When in stock, measure foot length directly against the brand's own chart."],
+        table: {
+          headers: ["Sizing System", "Size"],
+          rows: [
+            ["US Men's", fmtNumber(m, 1)],
+            ["US Women's", fmtNumber(m + 1.5, 1)],
+            ["UK", fmtNumber(m - 0.5, 1)],
+            ["EU", fmtNumber(m + 33, 0)],
+            ["Foot Length", `${fmtNumber(cm, 1)} cm`],
+          ],
+        },
+        chartCaption: "All five rows represent the exact same physical foot length — pick whichever sizing system the shoe you're buying uses.",
       };
     },
     relatedSlugs: ["bra-size-calculator"],

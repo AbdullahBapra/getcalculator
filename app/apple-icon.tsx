@@ -3,9 +3,9 @@ import { ImageResponse } from "next/og";
 export const size = { width: 180, height: 180 };
 export const contentType = "image/png";
 
-// iOS home-screen icon — same teal-600 "GC" mark as the header logo and the browser-tab
-// icon (icon.tsx), just rendered larger since apple-touch-icon has no rounded corners
-// applied by the OS on some versions, so a bit of radius here keeps it from looking bare.
+// iOS home-screen icon — same teal-600 ascending-bars mark as the header logo and the
+// browser-tab icon (icon.tsx), scaled up. A bit of radius here keeps it from looking
+// bare on OS versions that don't auto-round apple-touch-icon.
 export default function AppleIcon() {
   return new ImageResponse(
     (
@@ -13,18 +13,15 @@ export default function AppleIcon() {
         style={{
           width: "100%",
           height: "100%",
+          position: "relative",
           display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
           background: "#0d9488",
-          borderRadius: 36,
-          color: "#ffffff",
-          fontSize: 84,
-          fontWeight: 700,
-          fontFamily: "sans-serif",
+          borderRadius: 40,
         }}
       >
-        GC
+        <div style={{ position: "absolute", left: 45, bottom: 34, width: 22, height: 39, borderRadius: 11, background: "#ffffff" }} />
+        <div style={{ position: "absolute", left: 79, bottom: 34, width: 22, height: 62, borderRadius: 11, background: "#ffffff" }} />
+        <div style={{ position: "absolute", left: 113, bottom: 34, width: 22, height: 85, borderRadius: 11, background: "#ffffff" }} />
       </div>
     ),
     { ...size }

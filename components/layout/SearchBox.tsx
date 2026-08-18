@@ -1,13 +1,61 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { searchCalculators } from "@/lib/calculators/registry";
 
-export default function SearchBox({ className = "" }: { className?: string }) {
+interface Props {
+  className?: string;
+  /** When set, the placeholder types out each example, pauses, deletes it, and moves to
+   *  the next — purely cosmetic on an empty, unfocused box, and only used on the
+   *  homepage hero. It only ever touches the `placeholder` attribute, never `value`, so
+   *  it can't interfere with anything the person actually types. */
+  rotatingPlaceholders?: string[];
+}
+
+const DEFAULT_PLACEHOLDER = "Search 205 calculators…";
+
+export default function SearchBox({ className = "", rotatingPlaceholders }: Props) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  const [placeholder, setPlaceholder] = useState(DEFAULT_PLACEHOLDER);
   const results = useMemo(() => searchCalculators(query, 8), [query]);
+
+  useEffect(() => {
+    if (!rotatingPlaceholders || rotatingPlaceholders.length === 0) return;
+    let cancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout>;
+    let phraseIndex = 0;
+
+    function typePhrase() {
+      const phrase = `Try "${rotatingPlaceholders![phraseIndex]}"…`;
+      let charIndex = 0;
+      const typeChar = () => {
+        if (cancelled) return;
+        charIndex++;
+        setPlaceholder(phrase.slice(0, charIndex));
+        timeoutId = setTimeout(charIndex < phrase.length ? typeChar : () => (timeoutId = setTimeout(eraseChar, 1500)), 45);
+      };
+      const eraseChar = () => {
+        if (cancelled) return;
+        charIndex--;
+        setPlaceholder(phrase.slice(0, charIndex));
+        if (charIndex > 0) {
+          timeoutId = setTimeout(eraseChar, 22);
+        } else {
+          phraseIndex = (phraseIndex + 1) % rotatingPlaceholders!.length;
+          timeoutId = setTimeout(typePhrase, 350);
+        }
+      };
+      typeChar();
+    }
+
+    timeoutId = setTimeout(typePhrase, 700);
+    return () => {
+      cancelled = true;
+      clearTimeout(timeoutId);
+    };
+  }, [rotatingPlaceholders]);
 
   return (
     <div className={`relative ${className}`}>
@@ -20,7 +68,7 @@ export default function SearchBox({ className = "" }: { className?: string }) {
         }}
         onFocus={() => setOpen(true)}
         onBlur={() => setTimeout(() => setOpen(false), 150)}
-        placeholder="Search 205 calculators…"
+        placeholder={placeholder}
         aria-label="Search calculators"
         // text-base (16px), not text-sm — iOS Safari auto-zooms the page on focus for any
         // input under 16px; this box sits in the header on every page, so it matters everywhere.

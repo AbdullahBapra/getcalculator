@@ -1,6 +1,6 @@
 import type { CalcOutput, CalculatorDefinition } from "./types";
 import { n, fmtCurrency, fmtNumber, fmtPercent } from "../format";
-import { monthlyPayment, fvAnnuity, payoffCalc } from "./finance-helpers";
+import { monthlyPayment, fvAnnuity, payoffCalc, fvGrowthSeries } from "./finance-helpers";
 
 const financial: CalculatorDefinition[] = [
   {
@@ -50,6 +50,14 @@ const financial: CalculatorDefinition[] = [
           `M = ${fmtCurrency(principal)} × [r(1+r)^${nper}] / [(1+r)^${nper} − 1] = ${fmtCurrency(pi)}`,
           `Add taxes/insurance/HOA of ${fmtCurrency(escrow)}/mo → total monthly payment ${fmtCurrency(totalMonthly)}`,
         ],
+        breakdown: [
+          { label: "Principal & Interest", value: pi, displayValue: fmtCurrency(pi) },
+          { label: "Taxes, Insurance & HOA", value: escrow, displayValue: fmtCurrency(escrow) },
+        ],
+        chartCaption:
+          escrow > 0
+            ? `Taxes, insurance and HOA add ${fmtCurrency(escrow)} on top of the loan payment itself — ${fmtNumber((escrow / totalMonthly) * 100, 0)}% of what you'll actually pay each month.`
+            : `No property tax, insurance or HOA entered — your full monthly payment is just principal and interest.`,
       };
     },
     relatedSlugs: ["loan-calculator", "refinance-calculator", "amortization-basics"],
@@ -87,6 +95,11 @@ const financial: CalculatorDefinition[] = [
           `Total paid = ${fmtCurrency(m)} × ${nper} months = ${fmtCurrency(totalPaid)}`,
           `Total interest = ${fmtCurrency(totalPaid)} − ${fmtCurrency(p)} = ${fmtCurrency(totalInterest)}`,
         ],
+        breakdown: [
+          { label: "Principal", value: p, displayValue: fmtCurrency(p) },
+          { label: "Total Interest", value: totalInterest, displayValue: fmtCurrency(totalInterest) },
+        ],
+        chartCaption: `For every dollar you borrow, you'll pay back ${fmtCurrency(totalPaid / Math.max(1, p))} — interest adds ${fmtNumber((totalInterest / Math.max(1, p)) * 100, 0)}% on top of what you borrowed.`,
       };
     },
     relatedSlugs: ["mortgage-calculator", "auto-loan-calculator", "compound-interest-calculator"],
@@ -127,6 +140,12 @@ const financial: CalculatorDefinition[] = [
           `Amount financed = price + tax − down payment − trade-in = ${fmtCurrency(principal)}`,
           `Monthly payment M = ${fmtCurrency(principal)} × [r(1+r)^${nper}] / [(1+r)^${nper} − 1] = ${fmtCurrency(m)}`,
         ],
+        breakdown: [
+          { label: "Amount Financed", value: principal, displayValue: fmtCurrency(principal) },
+          { label: "Total Interest", value: totalPaid - principal, displayValue: fmtCurrency(totalPaid - principal) },
+          { label: "Sales Tax", value: tax, displayValue: fmtCurrency(tax) },
+        ],
+        chartCaption: `Sales tax alone adds ${fmtCurrency(tax)} to the price before you even start financing — and interest tacks on another ${fmtCurrency(totalPaid - principal)} over the life of the loan.`,
       };
     },
     relatedSlugs: ["loan-calculator", "lease-calculator"],
@@ -162,6 +181,12 @@ const financial: CalculatorDefinition[] = [
       const totalFv = principalFv + contribFv;
       const totalContributed = p + n(i.monthlyContribution) * months;
       const interestEarned = totalFv - totalContributed;
+      const wholeYears = Math.max(1, Math.round(years));
+      const growthSeries = Array.from({ length: wholeYears }, (_, idx) => {
+        const y = idx + 1;
+        const balanceAtY = p * Math.pow(1 + rate / cn, cn * y) + fvAnnuity(n(i.monthlyContribution), monthlyRate, y * 12);
+        return { label: `Yr ${y}`, value: balanceAtY, displayValue: fmtCurrency(balanceAtY) };
+      });
       return {
         results: [
           { label: "Future Value", value: fmtCurrency(totalFv), emphasis: true },
@@ -176,6 +201,11 @@ const financial: CalculatorDefinition[] = [
             : "No recurring contribution entered.",
           `Total future value = ${fmtCurrency(principalFv)} + ${fmtCurrency(contribFv)} = ${fmtCurrency(totalFv)}`,
         ],
+        growthSeries,
+        chartCaption:
+          totalContributed > 0
+            ? `${fmtNumber((interestEarned / Math.max(1, totalFv)) * 100, 0)}% of your final balance is money you never had to put in yourself — that's compounding doing the work. Tap any bar to see that year's balance.`
+            : `Every dollar of this balance came from compounding, since nothing was contributed. Tap any bar to see that year's balance.`,
       };
     },
     relatedSlugs: ["savings-calculator", "simple-interest-calculator", "retirement-401k-calculator"],
@@ -197,6 +227,13 @@ const financial: CalculatorDefinition[] = [
       const r = n(i.ratePercent) / 100;
       const t = n(i.years);
       const interest = p * r * t;
+      const wholeYears = Math.max(1, Math.round(t));
+      const annualInterest = p * r;
+      const growthSeries = Array.from({ length: wholeYears }, (_, idx) => {
+        const y = idx + 1;
+        const value = p + annualInterest * Math.min(y, t);
+        return { label: `Yr ${y}`, value, displayValue: fmtCurrency(value) };
+      });
       return {
         results: [
           { label: "Interest", value: fmtCurrency(interest), emphasis: true },
@@ -204,6 +241,11 @@ const financial: CalculatorDefinition[] = [
         ],
         formula: "I = P × r × t",
         steps: [`I = ${fmtCurrency(p)} × ${fmtNumber(r * 100)}% × ${t} years = ${fmtCurrency(interest)}`],
+        growthSeries,
+        chartCaption:
+          annualInterest > 0
+            ? `Simple interest adds the same flat ${fmtCurrency(annualInterest)} every year — unlike compound interest, none of it earns interest of its own. Tap any bar to see that year's balance.`
+            : `With no interest rate entered, the balance stays flat at ${fmtCurrency(p)} the whole time.`,
       };
     },
     relatedSlugs: ["compound-interest-calculator"],
@@ -238,6 +280,11 @@ const financial: CalculatorDefinition[] = [
           `Monthly rate = ${fmtNumber(n(i.ratePercent))}% ÷ 12 = ${fmtNumber(im * 100, 4)}%`,
           `FV = ${fmtCurrency(p)}(1+i)^${months} + ${fmtCurrency(pmt)}×[((1+i)^${months}−1)/i] = ${fmtCurrency(fv)}`,
         ],
+        growthSeries: fvGrowthSeries(p, pmt, n(i.ratePercent), n(i.years)),
+        chartCaption:
+          contributed > 0
+            ? `${fmtNumber((Math.max(0, fv - contributed) / Math.max(1, fv)) * 100, 0)}% of your final balance is interest, not money you deposited. Tap any bar to see that year's projected balance.`
+            : `Every dollar of this balance is interest, since nothing was deposited. Tap any bar to see that year's projected balance.`,
       };
     },
     relatedSlugs: ["compound-interest-calculator", "budget-calculator"],
@@ -269,6 +316,14 @@ const financial: CalculatorDefinition[] = [
       const taxable = Math.max(0, gross - n(i.preTaxDeductionsAnnual));
       const tax = taxable * (n(i.effectiveTaxRatePercent) / 100);
       const netAnnual = taxable - tax - n(i.postTaxDeductionsAnnual);
+      const preTaxDed = n(i.preTaxDeductionsAnnual);
+      const postTaxDed = n(i.postTaxDeductionsAnnual);
+      const breakdown = [
+        { label: "Take-Home Pay", value: Math.max(0, netAnnual), displayValue: fmtCurrency(netAnnual) },
+        { label: "Taxes", value: Math.max(0, tax), displayValue: fmtCurrency(tax) },
+        ...(preTaxDed > 0 ? [{ label: "Pre-tax Deductions", value: preTaxDed, displayValue: fmtCurrency(preTaxDed) }] : []),
+        ...(postTaxDed > 0 ? [{ label: "Post-tax Deductions", value: postTaxDed, displayValue: fmtCurrency(postTaxDed) }] : []),
+      ];
       return {
         results: [
           { label: "Net Pay Per Paycheck", value: fmtCurrency(netAnnual / periods), emphasis: true },
@@ -285,6 +340,11 @@ const financial: CalculatorDefinition[] = [
           `Net annual = ${fmtCurrency(taxable)} − ${fmtCurrency(tax)} − ${fmtCurrency(n(i.postTaxDeductionsAnnual))} = ${fmtCurrency(netAnnual)}`,
           `Per paycheck (${periods}/yr) = ${fmtCurrency(netAnnual)} ÷ ${periods} = ${fmtCurrency(netAnnual / periods)}`,
         ],
+        breakdown,
+        chartCaption:
+          gross > 0
+            ? `Of every dollar of gross salary, ${fmtNumber((Math.max(0, netAnnual) / gross) * 100, 0)}¢ actually reaches your pocket — the rest goes to taxes and deductions before you ever see it.`
+            : `Enter a gross salary to see how it splits between take-home pay, taxes and deductions.`,
       };
     },
     relatedSlugs: ["salary-calculator", "budget-calculator"],
@@ -316,6 +376,11 @@ const financial: CalculatorDefinition[] = [
             { label: "Tax Amount", value: fmtCurrency(tax) },
           ],
           steps: [`Pre-tax price = ${fmtCurrency(amount)} ÷ (1 + ${fmtNumber(n(i.ratePercent))}%) = ${fmtCurrency(preTax)}`],
+          breakdown: [
+            { label: "Price Before Tax", value: preTax, displayValue: fmtCurrency(preTax) },
+            { label: "Tax Amount", value: tax, displayValue: fmtCurrency(tax) },
+          ],
+          chartCaption: `${fmtNumber(rate * 100, 2)}% of this total, ${fmtCurrency(tax)}, is sales tax — the rest, ${fmtCurrency(preTax)}, is the actual price of the item.`,
         };
       }
       const tax = amount * rate;
@@ -325,6 +390,11 @@ const financial: CalculatorDefinition[] = [
           { label: "Total Price", value: fmtCurrency(amount + tax) },
         ],
         steps: [`Tax = ${fmtCurrency(amount)} × ${fmtNumber(n(i.ratePercent))}% = ${fmtCurrency(tax)}`],
+        breakdown: [
+          { label: "Pre-Tax Price", value: amount, displayValue: fmtCurrency(amount) },
+          { label: "Tax Amount", value: tax, displayValue: fmtCurrency(tax) },
+        ],
+        chartCaption: `Sales tax adds ${fmtCurrency(tax)} on top of the ${fmtCurrency(amount)} price — ${fmtNumber(rate * 100, 2)}% more than the sticker price.`,
       };
     },
     relatedSlugs: ["vat-calculator", "discount-calculator", "tip-calculator"],
@@ -356,6 +426,11 @@ const financial: CalculatorDefinition[] = [
             { label: "VAT Amount", value: fmtCurrency(vat) },
           ],
           steps: [`Net = ${fmtCurrency(amount)} ÷ (1 + ${fmtNumber(n(i.vatRatePercent))}%) = ${fmtCurrency(net)}`],
+          breakdown: [
+            { label: "Pre-Tax Price", value: net, displayValue: fmtCurrency(net) },
+            { label: "VAT Amount", value: vat, displayValue: fmtCurrency(vat) },
+          ],
+          chartCaption: `Of the ${fmtCurrency(amount)} total, ${fmtCurrency(vat)} is VAT — the pre-tax price is really ${fmtCurrency(net)}.`,
         };
       }
       const vat = amount * rate;
@@ -365,6 +440,11 @@ const financial: CalculatorDefinition[] = [
           { label: "Gross (incl. VAT)", value: fmtCurrency(amount + vat) },
         ],
         steps: [`VAT = ${fmtCurrency(amount)} × ${fmtNumber(n(i.vatRatePercent))}% = ${fmtCurrency(vat)}`],
+        breakdown: [
+          { label: "Pre-Tax Price", value: amount, displayValue: fmtCurrency(amount) },
+          { label: "VAT Amount", value: vat, displayValue: fmtCurrency(vat) },
+        ],
+        chartCaption: `VAT adds ${fmtCurrency(vat)} on top of the ${fmtCurrency(amount)} net price — ${fmtNumber(rate * 100, 2)}% more than the pre-tax price.`,
       };
     },
     relatedSlugs: ["sales-tax-calculator"],
@@ -396,6 +476,15 @@ const financial: CalculatorDefinition[] = [
           `Discount = ${fmtCurrency(original)} × ${fmtNumber(n(i.discountPercent))}% = ${fmtCurrency(discountAmt)}`,
           `Sale price = ${fmtCurrency(original)} − ${fmtCurrency(discountAmt)} = ${fmtCurrency(salePrice)}`,
         ],
+        breakdown: [
+          { label: "Amount Paid", value: salePrice, displayValue: fmtCurrency(salePrice) },
+          { label: "Amount Saved", value: discountAmt, displayValue: fmtCurrency(discountAmt) },
+          ...(tax > 0 ? [{ label: "Sales Tax", value: tax, displayValue: fmtCurrency(tax) }] : []),
+        ],
+        chartCaption:
+          original > 0
+            ? `The discount saves you ${fmtNumber((discountAmt / original) * 100, 0)}% of the original price — ${fmtCurrency(discountAmt)} off a ${fmtCurrency(original)} item.`
+            : `Enter an original price to see how much the discount saves.`,
       };
     },
     relatedSlugs: ["sales-tax-calculator", "percentage-calculator"],
@@ -429,6 +518,14 @@ const financial: CalculatorDefinition[] = [
           `Total = ${fmtCurrency(bill)} + ${fmtCurrency(tip)} = ${fmtCurrency(total)}`,
           people > 1 ? `Split ${people} ways → ${fmtCurrency(total / people)} each` : "Not split — one payer.",
         ],
+        breakdown: [
+          { label: "Bill", value: bill, displayValue: fmtCurrency(bill) },
+          { label: "Tip", value: tip, displayValue: fmtCurrency(tip) },
+        ],
+        chartCaption:
+          people > 1
+            ? `Split ${people} ways, each person pays ${fmtCurrency(total / people)} — ${fmtCurrency(tip / people)} of that is tip.`
+            : `The tip adds ${fmtNumber(n(i.tipPercent))}% on top of the bill — ${fmtCurrency(tip)} on a ${fmtCurrency(bill)} check.`,
       };
     },
     relatedSlugs: ["sales-tax-calculator", "discount-calculator"],
@@ -503,6 +600,8 @@ const financial: CalculatorDefinition[] = [
           `Combined monthly contribution = ${fmtCurrency(employeeMonthly)} + ${fmtCurrency(employerMonthly)} = ${fmtCurrency(totalMonthly)}`,
           `FV = ${fmtCurrency(n(i.currentBalance))}(1+i)^${months} + contributions grown at ${fmtNumber(n(i.returnPercent))}%/yr = ${fmtCurrency(fv)}`,
         ],
+        growthSeries: fvGrowthSeries(n(i.currentBalance), totalMonthly, n(i.returnPercent), months / 12),
+        chartCaption: `The employer match alone contributes ${fmtCurrency(employerMonthly * months)} over your career — money you'd leave on the table by not contributing enough to claim it.`,
       };
     },
     relatedSlugs: ["compound-interest-calculator", "savings-calculator"],
@@ -519,13 +618,27 @@ const financial: CalculatorDefinition[] = [
     ],
     calculate: (i) => {
       const income = n(i.monthlyIncome);
+      const needs = income * 0.5;
+      const wants = income * 0.3;
+      const savings = income * 0.2;
       return {
         results: [
-          { label: "Needs (50%)", value: fmtCurrency(income * 0.5), emphasis: true },
-          { label: "Wants (30%)", value: fmtCurrency(income * 0.3), emphasis: true },
-          { label: "Savings & Debt Payoff (20%)", value: fmtCurrency(income * 0.2), emphasis: true },
+          { label: "Needs (50%)", value: fmtCurrency(needs), emphasis: true },
+          { label: "Wants (30%)", value: fmtCurrency(wants), emphasis: true },
+          { label: "Savings & Debt Payoff (20%)", value: fmtCurrency(savings), emphasis: true },
         ],
         notes: ["A popular starting-point budget split (Elizabeth Warren's 50/30/20 rule) — adjust the ratios to fit your situation."],
+        steps: [
+          `Needs = ${fmtCurrency(income)} × 50% = ${fmtCurrency(needs)}`,
+          `Wants = ${fmtCurrency(income)} × 30% = ${fmtCurrency(wants)}`,
+          `Savings & Debt Payoff = ${fmtCurrency(income)} × 20% = ${fmtCurrency(savings)}`,
+        ],
+        breakdown: [
+          { label: "Needs", value: needs, displayValue: fmtCurrency(needs) },
+          { label: "Wants", value: wants, displayValue: fmtCurrency(wants) },
+          { label: "Savings & Debt Payoff", value: savings, displayValue: fmtCurrency(savings) },
+        ],
+        chartCaption: `On ${fmtCurrency(income)} a month, the 50/30/20 rule points ${fmtCurrency(needs)} to needs, ${fmtCurrency(wants)} to wants, and ${fmtCurrency(savings)} to savings or debt payoff.`,
       };
     },
     relatedSlugs: ["savings-calculator", "take-home-pay-calculator"],
@@ -557,6 +670,14 @@ const financial: CalculatorDefinition[] = [
         results,
         formula: "ROI = (Final − Initial) / Initial × 100",
         steps: [`ROI = (${fmtCurrency(final)} − ${fmtCurrency(initial)}) / ${fmtCurrency(initial)} × 100 = ${fmtPercent(roi)}`],
+        compare: [
+          { label: "Initial Investment", value: initial, displayValue: fmtCurrency(initial) },
+          { label: "Final Value", value: final, displayValue: fmtCurrency(final), highlight: final >= initial },
+        ],
+        chartCaption:
+          final >= initial
+            ? `Your investment grew from ${fmtCurrency(initial)} to ${fmtCurrency(final)} — a gain of ${fmtPercent(roi)}.`
+            : `Your investment fell from ${fmtCurrency(initial)} to ${fmtCurrency(final)} — a loss of ${fmtPercent(Math.abs(roi))}.`,
       };
     },
     relatedSlugs: ["compound-interest-calculator"],

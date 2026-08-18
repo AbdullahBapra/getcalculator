@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ALL_CALCULATORS, POPULAR_SLUGS, getCalculator } from "@/lib/calculators/registry";
+import Logo from "@/components/theme/Logo";
 
 export default function Footer() {
   const quickLinks = POPULAR_SLUGS.map((s) => getCalculator(s)).filter((c) => !!c);
@@ -8,8 +9,11 @@ export default function Footer() {
     <footer className="border-t border-zinc-200 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950">
       <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:grid-cols-[1.4fr_1fr_1fr]">
         <div>
-          <Link href="/" className="flex items-center gap-2 text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-50">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-teal-600 text-sm text-white">GC</span>
+          <Link
+            href="/"
+            className="logo-mark flex items-center gap-2 font-[family-name:var(--font-logo)] text-lg font-bold tracking-tight text-zinc-900 dark:text-zinc-50"
+          >
+            <Logo size={28} />
             GetCalculator
           </Link>
           <p className="mt-3 max-w-xs text-sm text-zinc-500 dark:text-zinc-400">

@@ -10,9 +10,35 @@ import {
   redundancyWeeks,
   statutoryNoticeWeeksFromEmployer,
   REDUNDANCY_WEEKLY_PAY_CAP,
+  REDUNDANCY_MAX_YEARS,
+  type StampDutyBand,
 } from "./uk-tax-helpers";
 
 const RATES_AS_OF = "6 April 2026 (tax year 2026/27)";
+
+/** Walks the same banded-rate logic as bandedPropertyTax(), but returns a row per band
+ *  instead of just the total — so the property-tax calculators can show exactly which
+ *  slice of the price was taxed at which rate, instead of a single opaque total. */
+function sdltBandRows(price: number, bands: StampDutyBand[], surchargePercent = 0): string[][] {
+  const rows: string[][] = [];
+  let lower = 0;
+  for (const b of bands) {
+    if (price > lower) {
+      const amountInBand = Math.min(price, b.upTo) - lower;
+      const effectiveRate = b.rate + surchargePercent / 100;
+      const taxInBand = amountInBand * effectiveRate;
+      rows.push([
+        b.upTo === Infinity ? `Above ${fmtCurrency(lower, "GBP", 0)}` : `${fmtCurrency(lower, "GBP", 0)} – ${fmtCurrency(b.upTo, "GBP", 0)}`,
+        `${fmtNumber(effectiveRate * 100, 1)}%`,
+        fmtCurrency(amountInBand, "GBP", 0),
+        fmtCurrency(taxInBand, "GBP", 0),
+      ]);
+    }
+    lower = b.upTo;
+    if (price <= b.upTo) break;
+  }
+  return rows;
+}
 
 const uk: CalculatorDefinition[] = [
   {
@@ -47,6 +73,16 @@ const uk: CalculatorDefinition[] = [
           "Whichever is longer — statutory or contractual — is what legally applies. Statutory minimums come from the Employment Rights Act 1996 s.86.",
           "This is general guidance, not legal advice — some contracts or circumstances (gross misconduct, etc.) change what applies.",
         ],
+        compare: [
+          { label: "Statutory Minimum", value: statutory, displayValue: `${fmtNumber(statutory, 1)} weeks`, highlight: statutory >= contractual },
+          { label: "Contractual Notice", value: contractual, displayValue: `${fmtNumber(contractual, 1)} weeks`, highlight: contractual > statutory },
+        ],
+        chartCaption:
+          statutory === contractual
+            ? `Statutory and contractual notice happen to match at ${fmtNumber(applicable, 1)} weeks — that's what applies.`
+            : statutory > contractual
+              ? `The statutory minimum (${fmtNumber(statutory, 1)} weeks) beats the contractual figure entered (${fmtNumber(contractual, 1)} weeks) — the law sets a floor the contract can't undercut.`
+              : `The contractual notice entered (${fmtNumber(contractual, 1)} weeks) is more generous than the statutory minimum (${fmtNumber(statutory, 1)} weeks), so the contract is what applies.`,
       };
     },
     relatedSlugs: ["uk-redundancy-pay-calculator"],
@@ -77,6 +113,21 @@ const uk: CalculatorDefinition[] = [
       const weeklyPayCapped = Math.min(n(i.weeklyPay, 600), REDUNDANCY_WEEKLY_PAY_CAP);
       const weeks = redundancyWeeks(age, years);
       const payout = weeks * weeklyPayCapped;
+
+      // Re-walk the same age-banding the payout is built from, just to split it into
+      // segments for the chart — the math here mirrors redundancyWeeks() exactly.
+      const cappedYears = Math.min(REDUNDANCY_MAX_YEARS, Math.floor(years));
+      let under22Years = 0, midYears = 0, olderYears = 0;
+      for (let k = 1; k <= cappedYears; k++) {
+        const ageInThatYear = age - (cappedYears - k);
+        if (ageInThatYear < 22) under22Years++;
+        else if (ageInThatYear <= 40) midYears++;
+        else olderYears++;
+      }
+      const olderValue = olderYears * 1.5 * weeklyPayCapped;
+      const midValue = midYears * 1 * weeklyPayCapped;
+      const under22Value = under22Years * 0.5 * weeklyPayCapped;
+
       return {
         results: [
           { label: "Statutory Redundancy Pay", value: fmtCurrency(payout, "GBP"), emphasis: true },
@@ -88,6 +139,12 @@ const uk: CalculatorDefinition[] = [
           "Years of service beyond 20 don't count further. This is the statutory floor — your employer's contractual/enhanced redundancy scheme, if they have one, may pay more.",
           "Each year of service is banded by your age during that year, not just your current age, matching how GOV.UK calculates it.",
         ],
+        breakdown: [
+          { label: "Service at age 41+ (1.5 wks/yr)", value: olderValue, displayValue: fmtCurrency(olderValue, "GBP") },
+          { label: "Service age 22–40 (1 wk/yr)", value: midValue, displayValue: fmtCurrency(midValue, "GBP") },
+          { label: "Service under 22 (0.5 wks/yr)", value: under22Value, displayValue: fmtCurrency(under22Value, "GBP") },
+        ].filter((seg) => seg.value > 0),
+        chartCaption: `Your ${fmtNumber(weeks, 1)}-week payout is built year by year — each year of service earns more weeks' pay the older you were during that particular year, so later years of a long career count for more than early ones.`,
       };
     },
     relatedSlugs: ["uk-notice-period-calculator"],
@@ -152,7 +209,15 @@ const uk: CalculatorDefinition[] = [
           : "Outside-IR35 comparison shown — this is where the limited company route's tax efficiency genuinely applies.",
         "We don't determine your IR35 status — see the IR35 Factors Checklist for the main factors, and get a professional assessment for a real engagement.",
       ];
-      return { results, notes };
+      const compare = [
+        { label: "Umbrella — Annual Take-Home", value: umbrellaTakeHome, displayValue: fmtCurrency(umbrellaTakeHome, "GBP"), highlight: umbrellaTakeHome >= ltdTakeHome },
+        { label: "Limited Company — Annual Take-Home", value: ltdTakeHome, displayValue: fmtCurrency(ltdTakeHome, "GBP"), highlight: ltdTakeHome > umbrellaTakeHome },
+      ];
+      const better = ltdTakeHome > umbrellaTakeHome ? "Limited Company" : umbrellaTakeHome > ltdTakeHome ? "Umbrella" : null;
+      const chartCaption = better
+        ? `On these numbers, ${better} leaves you with ${fmtCurrency(Math.abs(ltdTakeHome - umbrellaTakeHome), "GBP")} more in your pocket each year — but see the IR35 note above before treating that gap as guaranteed.`
+        : "Both routes land on essentially the same annual take-home for these numbers.";
+      return { results, notes, compare, chartCaption };
     },
     relatedSlugs: ["ir35-factors-checklist", "salary-calculator"],
   },
@@ -190,6 +255,18 @@ const uk: CalculatorDefinition[] = [
           "No online tool — including this one and HMRC's own CEST tool — can give a legally binding answer. CEST itself has been widely criticized by tax and legal commentators as oversimplified.",
           "For a real engagement, use HMRC's CEST tool as a starting point and get a professional IR35 assessment — the financial consequences of getting this wrong (unpaid tax, NI, penalties) can be significant.",
         ],
+        gauge: {
+          value: score,
+          min: -3,
+          max: 4,
+          valueLabel: fmtNumber(score, 1),
+          zones: [
+            { label: "Leans inside IR35", to: -2, barClass: "bg-rose-400 dark:bg-rose-500", textClass: "text-rose-600 dark:text-rose-400" },
+            { label: "Borderline", to: 2, barClass: "bg-amber-400 dark:bg-amber-500", textClass: "text-amber-600 dark:text-amber-400" },
+            { label: "Leans outside IR35", to: 4, barClass: "bg-emerald-400 dark:bg-emerald-500", textClass: "text-emerald-600 dark:text-emerald-400" },
+          ],
+        },
+        chartCaption: `Your answers score ${fmtNumber(score, 1)} on a scale from -3 (strongly employee-like) to +4 (strongly self-employed-like) — landing in the "${lean.replace("Leans ", "").replace(" — factors are mixed", "")}" zone.`,
       };
     },
     relatedSlugs: ["umbrella-vs-limited-company-calculator"],
@@ -235,6 +312,8 @@ const uk: CalculatorDefinition[] = [
         return {
           results: [{ label: "Land and Buildings Transaction Tax (LBTT)", value: fmtCurrency(tax, "GBP"), emphasis: true }],
           notes: [isAdditional ? "Includes the 8% Additional Dwelling Supplement (ADS)." : "", isFTB ? "Includes first-time buyer relief (nil band raised to £175,000)." : ""].filter(Boolean),
+          table: { headers: ["Price Band", "Rate", "Amount in Band", "Tax in Band"], rows: sdltBandRows(price, bands, isAdditional ? 8 : 0) },
+          chartCaption: `LBTT is banded like income tax — only the slice of the price inside each band is taxed at that band's rate, so ${fmtCurrency(tax, "GBP", 0)} works out to about ${fmtNumber((tax / Math.max(1, price)) * 100, 1)}% of the full price, not the top band's rate.`,
         };
       }
 
@@ -253,6 +332,8 @@ const uk: CalculatorDefinition[] = [
             "Wales has no separate first-time-buyer relief — the standard nil band already covers most starter purchases.",
             isAdditional ? "Additional-property surcharge shown as an approximate +4 percentage points — verify the exact current higher-rate bands at gov.wales before relying on this for a purchase decision." : "",
           ].filter(Boolean),
+          table: { headers: ["Price Band", "Rate", "Amount in Band", "Tax in Band"], rows: sdltBandRows(price, bands, isAdditional ? 4 : 0) },
+          chartCaption: `LTT is banded like income tax — only the slice of the price inside each band is taxed at that band's rate, so ${fmtCurrency(tax, "GBP", 0)} works out to about ${fmtNumber((tax / Math.max(1, price)) * 100, 1)}% of the full price, not the top band's rate.`,
         };
       }
 
@@ -284,6 +365,8 @@ const uk: CalculatorDefinition[] = [
           isAdditional ? "Includes the 5% additional-property surcharge." : "",
           i.nonUkResident === "yes" ? "Includes the 2% non-UK-resident surcharge." : "",
         ].filter(Boolean),
+        table: { headers: ["Price Band", "Rate", "Amount in Band", "Tax in Band"], rows: sdltBandRows(price, bands, surcharge) },
+        chartCaption: `SDLT is banded like income tax — only the slice of the price inside each band is taxed at that band's rate, so ${fmtCurrency(tax, "GBP", 0)} works out to about ${fmtNumber((tax / Math.max(1, price)) * 100, 1)}% of the full price, not the top band's rate.`,
       };
     },
     relatedSlugs: ["mortgage-calculator-uk", "mortgage-calculator"],

@@ -1,6 +1,6 @@
 // Shared math used across every financial calculator module, so loan/annuity/NPV
 // logic is written once and reused rather than re-derived per calculator.
-import type { CalcOutput } from "./types";
+import type { BreakdownSegment, CalcOutput } from "./types";
 import { fmtCurrency, fmtNumber } from "../format";
 
 /** Standard amortizing-loan periodic payment. r = periodic rate, nper = number of periods. */
@@ -74,6 +74,7 @@ export function payoffCalc(balance: number, aprPercent: number, payment: number)
       `Simulated month-by-month: interest = balance × monthly rate, then the payment reduces the balance, until it reaches $0.`,
       `Result: ${months} months, ${fmtCurrency(totalInterest)} in total interest.`,
     ],
+    ...loanBreakdown(balance, totalInterest),
   };
 }
 
@@ -100,6 +101,37 @@ export function irr(initialOutflow: number, flows: number[]): number | null {
     else lo = mid;
   }
   return (lo + hi) / 2;
+}
+
+/** Standard "principal vs. interest" donut-chart breakdown + a plain-language caption —
+ *  shared by every loan-shaped calculator (personal, student, boat, RV, motorcycle,
+ *  debt consolidation, ...) so each one gets the same visual/explanation quality
+ *  without re-deriving the sentence by hand. `extra`, if given, is an additional slice
+ *  (e.g. sales tax on an auto loan) folded into the same chart. */
+export function loanBreakdown(principal: number, totalInterest: number, extra?: { label: string; value: number }): { breakdown: BreakdownSegment[]; chartCaption: string } {
+  const breakdown: BreakdownSegment[] = [
+    { label: "Principal", value: principal, displayValue: fmtCurrency(principal) },
+    { label: "Total Interest", value: Math.max(0, totalInterest), displayValue: fmtCurrency(totalInterest) },
+  ];
+  if (extra && extra.value > 0) breakdown.push({ label: extra.label, value: extra.value, displayValue: fmtCurrency(extra.value) });
+  const chartCaption =
+    principal > 0
+      ? `For every dollar borrowed, you pay back ${fmtCurrency((principal + Math.max(0, totalInterest)) / principal)} — interest adds ${fmtNumber((Math.max(0, totalInterest) / principal) * 100, 0)}% on top.`
+      : `Interest of ${fmtCurrency(totalInterest)} on top of the amount borrowed.`;
+  return { breakdown, chartCaption };
+}
+
+/** Year-by-year future-value series (monthly compounding + monthly contributions) — the
+ *  data behind the "growth over time" bar chart, shared by every investment/retirement
+ *  calculator that projects a balance forward, so each one doesn't recompute its own loop. */
+export function fvGrowthSeries(initial: number, monthlyContribution: number, annualRatePercent: number, years: number): { label: string; value: number; displayValue: string }[] {
+  const monthlyRate = annualRatePercent / 100 / 12;
+  const wholeYears = Math.max(1, Math.round(years));
+  return Array.from({ length: wholeYears }, (_, idx) => {
+    const y = idx + 1;
+    const value = initial * Math.pow(1 + monthlyRate, y * 12) + fvAnnuity(monthlyContribution, monthlyRate, y * 12);
+    return { label: `Yr ${y}`, value, displayValue: fmtCurrency(value) };
+  });
 }
 
 /** Bisection search for the largest `price` where cost(price) <= target (cost assumed increasing in price). */

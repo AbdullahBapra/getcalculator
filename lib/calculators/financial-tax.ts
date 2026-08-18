@@ -1,7 +1,7 @@
 import type { CalculatorDefinition } from "./types";
 import { n, fmtCurrency, fmtNumber, fmtPercent } from "../format";
-import { monthlyPayment, pvAnnuity } from "./finance-helpers";
-import { FX_TO_USD, CURRENCY_OPTIONS } from "../currency";
+import { monthlyPayment, pvAnnuity, loanBreakdown, fvGrowthSeries } from "./finance-helpers";
+import { FX_TO_USD, CURRENCY_OPTIONS, getCurrency } from "../currency";
 
 interface Bracket {
   upTo: number;
@@ -41,6 +41,28 @@ function progressiveTax(income: number, brackets: Bracket[]): { tax: number; mar
   }
   return { tax, marginalRate };
 }
+/** Same bracket walk as progressiveTax(), but surfaced as a row-per-bracket reference
+ *  table instead of just a single total — this is the real "show your work" for a
+ *  progressive tax system: which slice of income was taxed at which rate. */
+function bracketTable(income: number, brackets: Bracket[]): { headers: string[]; rows: string[][] } {
+  const rows: string[][] = [];
+  let lower = 0;
+  for (const b of brackets) {
+    const upper = Math.min(income, b.upTo);
+    if (upper > lower) {
+      const taxableInBracket = upper - lower;
+      rows.push([
+        b.upTo === Infinity ? `Over ${fmtCurrency(lower)}` : `${fmtCurrency(lower)} – ${fmtCurrency(b.upTo)}`,
+        fmtPercent(b.rate * 100),
+        fmtCurrency(taxableInBracket),
+        fmtCurrency(taxableInBracket * b.rate),
+      ]);
+    }
+    lower = b.upTo;
+    if (income <= b.upTo) break;
+  }
+  return { headers: ["Bracket", "Rate", "Taxed at This Rate", "Tax Owed"], rows };
+}
 
 const financialTax: CalculatorDefinition[] = [
   {
@@ -59,11 +81,17 @@ const financialTax: CalculatorDefinition[] = [
     calculate: (i) => {
       const p = n(i.principal), r = n(i.ratePercent) / 100, t = n(i.years);
       const total = i.mode === "simple" ? p * (1 + r * t) : p * Math.pow(1 + r, t);
+      const interestEarned = total - p;
       return {
         results: [
-          { label: "Interest Earned", value: fmtCurrency(total - p), emphasis: true },
+          { label: "Interest Earned", value: fmtCurrency(interestEarned), emphasis: true },
           { label: "Total Amount", value: fmtCurrency(total) },
         ],
+        breakdown: [
+          { label: "Principal", value: p, displayValue: fmtCurrency(p) },
+          { label: "Interest Earned", value: interestEarned, displayValue: fmtCurrency(interestEarned) },
+        ],
+        chartCaption: `Of the ${fmtCurrency(total)} you end up with, ${fmtCurrency(p)} is what you put in — the rest, ${fmtCurrency(interestEarned)}, is interest ${i.mode === "simple" ? "earned at a flat rate every year" : "compounding on top of itself"}.`,
       };
     },
     relatedSlugs: ["compound-interest-calculator", "simple-interest-calculator"],
@@ -87,10 +115,18 @@ const financialTax: CalculatorDefinition[] = [
       const nper = n(i.termMonths, 60);
       if (i.mode === "loanAmount") {
         const loanAmt = pvAnnuity(n(i.targetPayment), r, nper);
-        return { results: [{ label: "Loan Amount Supported", value: fmtCurrency(loanAmt), emphasis: true }] };
+        const totalInterest = n(i.targetPayment) * nper - loanAmt;
+        return {
+          results: [{ label: "Loan Amount Supported", value: fmtCurrency(loanAmt), emphasis: true }],
+          ...loanBreakdown(loanAmt, totalInterest),
+        };
       }
       const pmt = monthlyPayment(n(i.principal), r, nper);
-      return { results: [{ label: "Monthly Payment", value: fmtCurrency(pmt), emphasis: true }] };
+      const totalInterest = pmt * nper - n(i.principal);
+      return {
+        results: [{ label: "Monthly Payment", value: fmtCurrency(pmt), emphasis: true }],
+        ...loanBreakdown(n(i.principal), totalInterest),
+      };
     },
     relatedSlugs: ["loan-calculator"],
   },
@@ -112,14 +148,23 @@ const financialTax: CalculatorDefinition[] = [
     calculate: (i) => {
       const r = n(i.ratePercent) / 100 / 12;
       const nper = n(i.years, 10) * 12;
+      const years = n(i.years, 10);
       if (i.mode === "payment") {
         const growthOfPv = n(i.pv) * Math.pow(1 + r, nper);
         const neededFromPmt = n(i.targetFv) - growthOfPv;
-        const pmt = r === 0 ? neededFromPmt / nper : (neededFromPmt * r) / (Math.pow(1 + r, nper) - 1);
-        return { results: [{ label: "Required Monthly Payment", value: fmtCurrency(Math.max(0, pmt)), emphasis: true }] };
+        const pmt = Math.max(0, r === 0 ? neededFromPmt / nper : (neededFromPmt * r) / (Math.pow(1 + r, nper) - 1));
+        return {
+          results: [{ label: "Required Monthly Payment", value: fmtCurrency(pmt), emphasis: true }],
+          growthSeries: fvGrowthSeries(n(i.pv), pmt, n(i.ratePercent), years),
+          chartCaption: `Contributing ${fmtCurrency(pmt)}/mo at ${fmtNumber(n(i.ratePercent))}% traces this path from ${fmtCurrency(n(i.pv))} today up to your ${fmtCurrency(n(i.targetFv))} goal by year ${Math.max(1, Math.round(years))}.`,
+        };
       }
       const fv = n(i.pv) * Math.pow(1 + r, nper) + (r === 0 ? n(i.pmt) * nper : n(i.pmt) * ((Math.pow(1 + r, nper) - 1) / r));
-      return { results: [{ label: "Future Value", value: fmtCurrency(fv), emphasis: true }] };
+      return {
+        results: [{ label: "Future Value", value: fmtCurrency(fv), emphasis: true }],
+        growthSeries: fvGrowthSeries(n(i.pv), n(i.pmt), n(i.ratePercent), years),
+        chartCaption: `Starting from ${fmtCurrency(n(i.pv))} and adding ${fmtCurrency(n(i.pmt))}/mo, this is the balance building year by year toward ${fmtCurrency(fv)}. Tap any bar to see that year's value.`,
+      };
     },
     relatedSlugs: ["future-value-calculator", "present-value-calculator"],
   },
@@ -146,6 +191,8 @@ const financialTax: CalculatorDefinition[] = [
           { label: "Effective Tax Rate", value: fmtPercent(effective) },
         ],
         notes: ["2024 US federal brackets on taxable income — ignores the standard deduction, credits and state tax, so your actual bill will differ."],
+        table: bracketTable(n(i.taxableIncome), brackets),
+        chartCaption: `Your income isn't taxed at one flat rate — each bracket only taxes the dollars that fall inside it, which is why your ${fmtPercent(effective)} effective rate lands well below your ${fmtPercent(marginalRate * 100)} marginal (top) rate.`,
       };
     },
     relatedSlugs: ["take-home-pay-calculator", "salary-calculator"],
@@ -168,13 +215,20 @@ const financialTax: CalculatorDefinition[] = [
       const weeks = n(i.weeksPerYear, 50);
       const annual = i.payType === "annual" ? n(i.amount) : n(i.amount) * hours * weeks;
       const hourly = i.payType === "hourly" ? n(i.amount) : annual / (hours * weeks);
+      const monthly = annual / 12;
       return {
         results: [
           { label: "Hourly", value: fmtCurrency(hourly) },
           { label: "Weekly", value: fmtCurrency(hourly * hours) },
-          { label: "Monthly", value: fmtCurrency(annual / 12) },
+          { label: "Monthly", value: fmtCurrency(monthly) },
           { label: "Annual", value: fmtCurrency(annual), emphasis: true },
         ],
+        growthSeries: Array.from({ length: 12 }, (_, idx) => {
+          const month = idx + 1;
+          const cumulative = monthly * month;
+          return { label: `Mo ${month}`, value: cumulative, displayValue: fmtCurrency(cumulative) };
+        }),
+        chartCaption: `Your pay builds up to ${fmtCurrency(annual)} over the year — each bar shows how much you've earned cumulatively by that month. Tap any bar to check the running total.`,
       };
     },
     relatedSlugs: ["take-home-pay-calculator", "income-tax-calculator"],
@@ -204,7 +258,24 @@ const financialTax: CalculatorDefinition[] = [
         else lo = mid;
       }
       const monthlyRate = (lo + hi) / 2;
-      return { results: [{ label: "Annual Interest Rate (APR)", value: fmtPercent(monthlyRate * 12 * 100), emphasis: true }] };
+      const apr = monthlyRate * 12 * 100;
+      return {
+        results: [{ label: "Annual Interest Rate (APR)", value: fmtPercent(apr), emphasis: true }],
+        gauge: {
+          value: apr,
+          min: 0,
+          max: 30,
+          valueLabel: fmtNumber(apr, 1),
+          zones: [
+            { label: "Excellent", to: 6, barClass: "bg-emerald-400 dark:bg-emerald-500", textClass: "text-emerald-600 dark:text-emerald-400" },
+            { label: "Good", to: 10, barClass: "bg-teal-500 dark:bg-teal-400", textClass: "text-teal-600 dark:text-teal-400" },
+            { label: "Fair", to: 16, barClass: "bg-amber-400 dark:bg-amber-500", textClass: "text-amber-600 dark:text-amber-400" },
+            { label: "High", to: 22, barClass: "bg-orange-400 dark:bg-orange-500", textClass: "text-orange-600 dark:text-orange-400" },
+            { label: "Very High", to: 30, barClass: "bg-rose-500 dark:bg-rose-500", textClass: "text-rose-600 dark:text-rose-400" },
+          ],
+        },
+        chartCaption: `A ${fmtPercent(apr)} rate on this loan is where it lands among typical consumer loan rates — well-qualified borrowers on secured loans usually land near the low end, unsecured or subprime rates push toward the high end.`,
+      };
     },
     relatedSlugs: ["loan-calculator", "apr-calculator"],
   },
@@ -231,6 +302,14 @@ const financialTax: CalculatorDefinition[] = [
           { label: diff > 0 ? "Marriage Penalty" : "Marriage Bonus", value: fmtCurrency(Math.abs(diff)), emphasis: true },
         ],
         notes: ["2024 federal brackets only — ignores deductions, credits and state tax."],
+        compare: [
+          { label: "Combined Tax as Two Singles", value: taxSingle, displayValue: fmtCurrency(taxSingle) },
+          { label: "Tax Filing Jointly", value: taxMarried, displayValue: fmtCurrency(taxMarried), highlight: true },
+        ],
+        chartCaption:
+          diff > 0
+            ? `Filing jointly costs ${fmtCurrency(diff)} more than the two of you would have paid filing single — a marriage penalty, usually from combined income pushing into higher brackets.`
+            : `Filing jointly saves ${fmtCurrency(Math.abs(diff))} compared to filing single separately — a marriage bonus, common when one partner earns notably more than the other.`,
       };
     },
     relatedSlugs: ["income-tax-calculator"],
@@ -251,12 +330,23 @@ const financialTax: CalculatorDefinition[] = [
     calculate: (i) => {
       const taxable = Math.max(0, n(i.estateValue) - n(i.exemption));
       const tax = taxable * (n(i.ratePercent, 40) / 100);
+      const exemptAmount = Math.min(n(i.estateValue), n(i.exemption));
+      const netToHeirs = Math.max(0, taxable - tax);
       return {
         results: [
           { label: "Taxable Estate", value: fmtCurrency(taxable) },
           { label: "Estimated Estate Tax", value: fmtCurrency(tax), emphasis: true },
         ],
         notes: ["Federal only — many states also levy their own estate or inheritance tax with much lower exemptions."],
+        breakdown: [
+          { label: "Protected by Exemption", value: exemptAmount, displayValue: fmtCurrency(exemptAmount) },
+          { label: "Passes to Heirs (after tax)", value: netToHeirs, displayValue: fmtCurrency(netToHeirs) },
+          { label: "Estate Tax", value: tax, displayValue: fmtCurrency(tax) },
+        ],
+        chartCaption:
+          taxable > 0
+            ? `${fmtCurrency(exemptAmount)} of the estate passes tax-free under the exemption; of the remaining ${fmtCurrency(taxable)} taxable portion, ${fmtCurrency(tax)} goes to estate tax and ${fmtCurrency(netToHeirs)} still reaches your heirs.`
+            : `The entire ${fmtCurrency(exemptAmount)} estate falls under the exemption, so no federal estate tax is owed.`,
       };
     },
     relatedSlugs: ["income-tax-calculator"],
@@ -295,6 +385,7 @@ const financialTax: CalculatorDefinition[] = [
           { label: "Total Interest Paid", value: fmtCurrency(totalInterest), emphasis: true },
         ],
         notes: ["This is why credit card issuers are required to show a 'minimum payment warning' on statements — it usually costs far more than a fixed payoff plan."],
+        ...loanBreakdown(n(i.balance), totalInterest),
       };
     },
     relatedSlugs: ["credit-card-payoff-calculator"],
@@ -333,6 +424,14 @@ const financialTax: CalculatorDefinition[] = [
           { label: newPayment < currentMonthlyEstimate ? "Monthly Savings" : "Monthly Increase", value: fmtCurrency(Math.abs(currentMonthlyEstimate - newPayment)) },
         ],
         notes: ["Current combined payment is estimated using a typical 3%-of-balance minimum — use your real statement minimums for an exact comparison."],
+        compare: [
+          { label: "Current Combined Min. Payments", value: currentMonthlyEstimate, displayValue: fmtCurrency(currentMonthlyEstimate), highlight: currentMonthlyEstimate <= newPayment },
+          { label: "New Consolidated Payment", value: newPayment, displayValue: fmtCurrency(newPayment), highlight: newPayment < currentMonthlyEstimate },
+        ],
+        chartCaption:
+          newPayment < currentMonthlyEstimate
+            ? `Consolidating drops your monthly outlay by ${fmtCurrency(currentMonthlyEstimate - newPayment)} — but check the new term length, since a lower payment can still mean more total interest if it's stretched out longer.`
+            : `Consolidating actually raises your monthly payment by ${fmtCurrency(newPayment - currentMonthlyEstimate)} here — it may still be worth it for a lower rate or a simpler single bill, but it isn't cheaper month-to-month.`,
       };
     },
     relatedSlugs: ["debt-payoff-calculator", "credit-card-calculator"],
@@ -360,6 +459,14 @@ const financialTax: CalculatorDefinition[] = [
           { label: "Income-Based Plan Payment", value: fmtCurrency(incomeBasedPmt), emphasis: true },
         ],
         notes: ["Income-based payments may extend your payoff timeline and increase total interest compared to the standard plan."],
+        compare: [
+          { label: "Standard Plan Payment", value: standardPmt, displayValue: fmtCurrency(standardPmt) },
+          { label: "Income-Based Plan Payment", value: incomeBasedPmt, displayValue: fmtCurrency(incomeBasedPmt), highlight: incomeBasedPmt < standardPmt },
+        ],
+        chartCaption:
+          incomeBasedPmt < standardPmt
+            ? `Income-based payments are ${fmtCurrency(standardPmt - incomeBasedPmt)}/mo lighter right now — but a smaller payment means the balance takes longer to shrink, so it usually costs more in total interest.`
+            : `Income-based payments would actually be higher here — the standard plan is both cheaper and faster in this case.`,
       };
     },
     relatedSlugs: ["student-loan-calculator"],
@@ -385,6 +492,7 @@ const financialTax: CalculatorDefinition[] = [
           { label: "Total Interest", value: fmtCurrency(total - n(i.principal)) },
           { label: "Total Paid", value: fmtCurrency(total) },
         ],
+        ...loanBreakdown(n(i.principal), total - n(i.principal)),
       };
     },
     relatedSlugs: ["college-cost-calculator", "repayment-calculator"],
@@ -417,6 +525,8 @@ const financialTax: CalculatorDefinition[] = [
           { label: "First-Year Cost (inflated)", value: fmtCurrency(perYear[0] ?? 0), emphasis: true },
           { label: `Total Cost (${n(i.yearsInCollege, 4)} years)`, value: fmtCurrency(total), emphasis: true },
         ],
+        growthSeries: perYear.map((cost, idx) => ({ label: `Yr ${idx + 1}`, value: cost, displayValue: fmtCurrency(cost) })),
+        chartCaption: `Even though tuition inflation is applied at the same ${fmtNumber(inflation * 100)}%/yr the whole way, each year of college costs more than the last just from starting later — tap a bar to see that year's cost.`,
       };
     },
     relatedSlugs: ["student-loan-calculator", "savings-calculator"],
@@ -448,6 +558,11 @@ const financialTax: CalculatorDefinition[] = [
           { label: "Low Interest Option — Total Cost", value: fmtCurrency(lowRateTotal), emphasis: true },
           { label: "Cheaper Option", value: rebateTotal < lowRateTotal ? "Cash Rebate" : "Low Interest Financing", emphasis: true },
         ],
+        compare: [
+          { label: "Cash Rebate — Total Cost", value: rebateTotal, displayValue: fmtCurrency(rebateTotal), highlight: rebateTotal < lowRateTotal },
+          { label: "Low Interest — Total Cost", value: lowRateTotal, displayValue: fmtCurrency(lowRateTotal), highlight: lowRateTotal <= rebateTotal },
+        ],
+        chartCaption: `Over the full ${term}-month loan, ${rebateTotal < lowRateTotal ? "the cash rebate" : "the low-interest offer"} costs ${fmtCurrency(Math.abs(rebateTotal - lowRateTotal))} less — the rebate shrinks what you finance, while the low rate shrinks what that financing costs.`,
       };
     },
     relatedSlugs: ["auto-loan-calculator"],
@@ -483,6 +598,12 @@ const financialTax: CalculatorDefinition[] = [
           { label: "Total Monthly Payment", value: fmtCurrency(base + tax), emphasis: true },
           { label: "Residual Value", value: fmtCurrency(residual) },
         ],
+        breakdown: [
+          { label: "Depreciation", value: depreciationFee, displayValue: fmtCurrency(depreciationFee) },
+          { label: "Finance Fee", value: financeFee, displayValue: fmtCurrency(financeFee) },
+          { label: "Sales Tax", value: tax, displayValue: fmtCurrency(tax) },
+        ],
+        chartCaption: `${fmtNumber((depreciationFee / (base + tax)) * 100, 0)}% of your lease payment is just the car's depreciation over the term — the rest is the finance fee (interest on the lease) and sales tax layered on top.`,
       };
     },
     relatedSlugs: ["lease-calculator", "auto-loan-calculator"],
@@ -504,9 +625,24 @@ const financialTax: CalculatorDefinition[] = [
       const toRate = FX_TO_USD[i.to] ?? 1;
       const usd = n(i.amount) * fromRate;
       const converted = usd / toRate;
+      const fromSymbol = getCurrency(i.from)?.symbol ?? "";
+      const toSymbol = getCurrency(i.to)?.symbol ?? "";
       return {
         results: [{ label: `${i.from} → ${i.to}`, value: fmtNumber(converted, 2), emphasis: true }],
         notes: ["Uses a static illustrative rate snapshot, not a live feed — check a live source (like your bank) before transacting."],
+        steps: [
+          `${i.from} → USD: ${fmtNumber(n(i.amount), 2)} × ${fmtNumber(fromRate, 4)} = ${fmtNumber(usd, 2)} USD`,
+          `USD → ${i.to}: ${fmtNumber(usd, 2)} ÷ ${fmtNumber(toRate, 4)} = ${fmtNumber(converted, 2)} ${i.to}`,
+          "Every conversion here routes through USD as a common unit, which is also how most real-world currency conversions work under the hood.",
+        ],
+        // Same real value, shown in both units side by side — the same "one quantity,
+        // two representations" idea as the site's kg/lb and cm/in convertPair fields,
+        // just for currency instead of physical units.
+        compare: [
+          { label: `In ${i.from}`, value: n(i.amount), displayValue: `${fromSymbol}${fmtNumber(n(i.amount), 2)}` },
+          { label: `In ${i.to}`, value: converted, displayValue: `${toSymbol}${fmtNumber(converted, 2)}`, highlight: true },
+        ],
+        chartCaption: `${fromSymbol}${fmtNumber(n(i.amount), 2)} ${i.from} and ${toSymbol}${fmtNumber(converted, 2)} ${i.to} represent the same value at this rate snapshot — just denominated in different currencies.`,
       };
     },
     relatedSlugs: [],
@@ -528,8 +664,20 @@ const financialTax: CalculatorDefinition[] = [
       const rate = 1 + n(i.inflationPercent, 3) / 100;
       const years = n(i.years);
       const result = i.mode === "past" ? n(i.amount) / Math.pow(rate, years) : n(i.amount) * Math.pow(rate, years);
+      const wholeYears = Math.max(1, Math.round(years));
+      const base = i.mode === "past" ? result : n(i.amount);
+      const growthSeries = Array.from({ length: wholeYears }, (_, idx) => {
+        const y = idx + 1;
+        const value = base * Math.pow(rate, y);
+        return { label: `Yr ${y}`, value, displayValue: fmtCurrency(value) };
+      });
       return {
         results: [{ label: i.mode === "past" ? "Equivalent Value in the Past" : "Equivalent Value in the Future", value: fmtCurrency(result), emphasis: true }],
+        growthSeries,
+        chartCaption:
+          i.mode === "past"
+            ? `${fmtCurrency(result)} back then had the same buying power as ${fmtCurrency(n(i.amount))} today — this traces how it would have grown dollar-for-dollar at ${fmtNumber(n(i.inflationPercent, 3))}%/yr inflation to reach today's value.`
+            : `At ${fmtNumber(n(i.inflationPercent, 3))}%/yr inflation, ${fmtCurrency(n(i.amount))} needs to grow to ${fmtCurrency(result)} just to buy the same things in year ${wholeYears} — tap a bar to see any year along the way.`,
       };
     },
     relatedSlugs: ["gdp-calculator"],
@@ -548,11 +696,20 @@ const financialTax: CalculatorDefinition[] = [
     ],
     calculate: (i) => {
       const commission = n(i.saleAmount) * (n(i.commissionPercent) / 100);
+      const totalPay = commission + n(i.baseSalary);
       return {
         results: [
           { label: "Commission Earned", value: fmtCurrency(commission), emphasis: true },
-          { label: "Total Pay", value: fmtCurrency(commission + n(i.baseSalary)) },
+          { label: "Total Pay", value: fmtCurrency(totalPay) },
         ],
+        breakdown: [
+          { label: "Base Salary", value: n(i.baseSalary), displayValue: fmtCurrency(n(i.baseSalary)) },
+          { label: "Commission Earned", value: commission, displayValue: fmtCurrency(commission) },
+        ],
+        chartCaption:
+          n(i.baseSalary) > 0
+            ? `Commission makes up ${fmtNumber((commission / Math.max(1, totalPay)) * 100, 0)}% of this period's total pay — the rest is your fixed base salary.`
+            : `This period's entire pay is commission — there's no base salary cushioning it, so it rises and falls directly with sales.`,
       };
     },
     relatedSlugs: ["salary-calculator"],
@@ -570,11 +727,17 @@ const financialTax: CalculatorDefinition[] = [
     ],
     calculate: (i) => {
       const savings = n(i.originalPrice) * (n(i.percentOff, 30) / 100);
+      const finalPrice = n(i.originalPrice) - savings;
       return {
         results: [
           { label: "You Save", value: fmtCurrency(savings), emphasis: true },
-          { label: "Final Price", value: fmtCurrency(n(i.originalPrice) - savings), emphasis: true },
+          { label: "Final Price", value: fmtCurrency(finalPrice), emphasis: true },
         ],
+        breakdown: [
+          { label: "Final Price", value: finalPrice, displayValue: fmtCurrency(finalPrice) },
+          { label: "You Save", value: savings, displayValue: fmtCurrency(savings) },
+        ],
+        chartCaption: `Of the original ${fmtCurrency(n(i.originalPrice))} price, ${fmtNumber(n(i.percentOff, 30))}% off means ${fmtCurrency(savings)} stays in your pocket and ${fmtCurrency(finalPrice)} is what you actually pay.`,
       };
     },
     relatedSlugs: ["discount-calculator"],
@@ -607,13 +770,19 @@ const financialTax: CalculatorDefinition[] = [
         else lo = mid;
       }
       const aprMonthly = (lo + hi) / 2;
+      const trueApr = aprMonthly * 12 * 100;
       return {
         results: [
-          { label: "True APR", value: fmtPercent(aprMonthly * 12 * 100), emphasis: true },
+          { label: "True APR", value: fmtPercent(trueApr), emphasis: true },
           { label: "Stated Rate", value: fmtPercent(n(i.statedRatePercent)) },
           { label: "Monthly Payment", value: fmtCurrency(payment) },
         ],
         notes: ["APR is higher than the stated rate because fees reduce what you actually receive while you still pay based on the full loan amount."],
+        compare: [
+          { label: "Stated Rate", value: n(i.statedRatePercent), displayValue: fmtPercent(n(i.statedRatePercent)) },
+          { label: "True APR", value: trueApr, displayValue: fmtPercent(trueApr), highlight: true },
+        ],
+        chartCaption: `The ${fmtCurrency(n(i.fees))} in upfront fees is why the true cost of borrowing, ${fmtPercent(trueApr)}, runs higher than the ${fmtPercent(n(i.statedRatePercent))} rate advertised on the loan.`,
       };
     },
     relatedSlugs: ["interest-rate-calculator", "loan-calculator"],

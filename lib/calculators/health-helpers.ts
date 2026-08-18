@@ -1,6 +1,7 @@
 // Shared fields/helpers used across every health & fitness calculator.
 import type { FieldDef } from "./types";
 import { n } from "../format";
+import { lbKgPair, kgLbPair, cmInPair, ftInCmPair } from "./convert-hints";
 
 export const unitFields: FieldDef[] = [
   {
@@ -14,10 +15,47 @@ export const unitFields: FieldDef[] = [
     ],
   },
   { name: "heightFt", label: "Height", type: "number", unit: "ft", defaultValue: 5, min: 0, showIf: (i) => i.units !== "metric" },
-  { name: "heightIn", label: "", type: "number", unit: "in", defaultValue: 9, min: 0, max: 11, showIf: (i) => i.units !== "metric" },
-  { name: "heightCm", label: "Height", type: "number", unit: "cm", defaultValue: 175, min: 0, showIf: (i) => i.units === "metric" },
-  { name: "weightLb", label: "Weight", type: "number", unit: "lb", defaultValue: 160, min: 0, showIf: (i) => i.units !== "metric" },
-  { name: "weightKg", label: "Weight", type: "number", unit: "kg", defaultValue: 73, min: 0, showIf: (i) => i.units === "metric" },
+  {
+    name: "heightIn",
+    label: "",
+    type: "number",
+    unit: "in",
+    defaultValue: 9,
+    min: 0,
+    max: 11,
+    showIf: (i) => i.units !== "metric",
+    convertPair: ftInCmPair("heightFt", "heightIn"),
+  },
+  {
+    name: "heightCm",
+    label: "Height",
+    type: "number",
+    unit: "cm",
+    defaultValue: 175,
+    min: 0,
+    showIf: (i) => i.units === "metric",
+    convertPair: cmInPair("heightCm"),
+  },
+  {
+    name: "weightLb",
+    label: "Weight",
+    type: "number",
+    unit: "lb",
+    defaultValue: 160,
+    min: 0,
+    showIf: (i) => i.units !== "metric",
+    convertPair: lbKgPair("weightLb"),
+  },
+  {
+    name: "weightKg",
+    label: "Weight",
+    type: "number",
+    unit: "kg",
+    defaultValue: 73,
+    min: 0,
+    showIf: (i) => i.units === "metric",
+    convertPair: kgLbPair("weightKg"),
+  },
 ];
 
 export function heightCm(i: Record<string, string>): number {

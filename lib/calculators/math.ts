@@ -23,14 +23,51 @@ const math: CalculatorDefinition[] = [
       const a = n(i.a), b = n(i.b);
       if (i.mode === "isWhatPercent") {
         const r = b !== 0 ? (a / b) * 100 : NaN;
-        return { results: [{ label: "Result", value: `${fmtNumber(r)}%`, emphasis: true }], steps: [`${a} ÷ ${b} × 100 = ${fmtNumber(r)}%`] };
+        const base = {
+          results: [{ label: "Result", value: `${fmtNumber(r)}%`, emphasis: true }],
+          steps: [`${a} ÷ ${b} × 100 = ${fmtNumber(r)}%`],
+        };
+        if (r >= 0 && r <= 100) {
+          return {
+            ...base,
+            breakdown: [
+              { label: `A (${fmtNumber(a)})`, value: a, displayValue: `${fmtNumber(r)}%` },
+              { label: "Remainder of B", value: b - a, displayValue: `${fmtNumber(100 - r)}%` },
+            ],
+            chartCaption: `${fmtNumber(a)} makes up ${fmtNumber(r)}% of ${fmtNumber(b)} — the rest of the donut is the ${fmtNumber(100 - r, 2)}% left over.`,
+          };
+        }
+        return {
+          ...base,
+          compare: [
+            { label: "A", value: a, displayValue: fmtNumber(a) },
+            { label: "B", value: b, displayValue: fmtNumber(b) },
+          ],
+          chartCaption: `A is ${fmtNumber(r)}% of B — since that's over 100% (or negative), A doesn't fit neatly inside B, so here they are side by side instead.`,
+        };
       }
       if (i.mode === "change") {
         const r = a !== 0 ? ((b - a) / Math.abs(a)) * 100 : NaN;
-        return { results: [{ label: r >= 0 ? "Percent Increase" : "Percent Decrease", value: `${fmtNumber(Math.abs(r))}%`, emphasis: true }], steps: [`(${b} − ${a}) ÷ |${a}| × 100 = ${fmtNumber(r)}%`] };
+        return {
+          results: [{ label: r >= 0 ? "Percent Increase" : "Percent Decrease", value: `${fmtNumber(Math.abs(r))}%`, emphasis: true }],
+          steps: [`(${b} − ${a}) ÷ |${a}| × 100 = ${fmtNumber(r)}%`],
+          compare: [
+            { label: "Before (A)", value: a, displayValue: fmtNumber(a) },
+            { label: "After (B)", value: b, displayValue: fmtNumber(b), highlight: true },
+          ],
+          chartCaption: `The value moved from ${fmtNumber(a)} to ${fmtNumber(b)} — a ${r >= 0 ? "gain" : "drop"} of ${fmtNumber(Math.abs(r))}%.`,
+        };
       }
       const r = (a / 100) * b;
-      return { results: [{ label: "Result", value: fmtNumber(r), emphasis: true }], steps: [`${a}% × ${b} = ${fmtNumber(r)}`] };
+      return {
+        results: [{ label: "Result", value: fmtNumber(r), emphasis: true }],
+        steps: [`${a}% × ${b} = ${fmtNumber(r)}`],
+        compare: [
+          { label: "Whole (B)", value: b, displayValue: fmtNumber(b) },
+          { label: `${fmtNumber(a)}% of B`, value: r, displayValue: fmtNumber(r), highlight: true },
+        ],
+        chartCaption: `${fmtNumber(a)}% of ${fmtNumber(b)} is ${fmtNumber(r)} — see how that slice sizes up against the whole.`,
+      };
     },
     relatedSlugs: ["discount-calculator", "percent-error-calculator"],
   },
@@ -65,11 +102,19 @@ const math: CalculatorDefinition[] = [
       const g = gcd(rn, rd) || 1;
       let simpN = rn / g, simpD = rd / g;
       if (simpD < 0) { simpD = -simpD; simpN = -simpN; }
+      const opSymbol = i.op === "-" ? "−" : i.op === "*" ? "×" : i.op === "/" ? "÷" : "+";
+      const dec1 = n1 / d1, dec2 = n2 / d2, decResult = simpN / simpD;
       return {
         results: [
           { label: "Result", value: `${simpN}/${simpD}`, emphasis: true },
-          { label: "Decimal", value: fmtNumber(simpN / simpD, 4) },
+          { label: "Decimal", value: fmtNumber(decResult, 4) },
         ],
+        compare: [
+          { label: `${n1}/${d1}`, value: dec1, displayValue: fmtNumber(dec1, 4) },
+          { label: `${n2}/${d2}`, value: dec2, displayValue: fmtNumber(dec2, 4) },
+          { label: `Result (${simpN}/${simpD})`, value: decResult, displayValue: fmtNumber(decResult, 4), highlight: true },
+        ],
+        chartCaption: `${n1}/${d1} ${opSymbol} ${n2}/${d2} = ${simpN}/${simpD} — shown here as decimals so you can see how the result compares to each fraction you started with.`,
       };
     },
     relatedSlugs: ["percentage-calculator", "ratio-calculator"],
@@ -93,11 +138,32 @@ const math: CalculatorDefinition[] = [
       if (disc > 0) {
         const x1 = (-b + Math.sqrt(disc)) / (2 * a);
         const x2 = (-b - Math.sqrt(disc)) / (2 * a);
-        return { results: [{ label: "x₁", value: fmtNumber(x1, 4), emphasis: true }, { label: "x₂", value: fmtNumber(x2, 4), emphasis: true }], formula: "x = [−b ± √(b²−4ac)] / 2a", steps: [`Discriminant = ${b}² − 4×${a}×${c} = ${fmtNumber(disc, 4)}`] };
+        return {
+          results: [{ label: "x₁", value: fmtNumber(x1, 4), emphasis: true }, { label: "x₂", value: fmtNumber(x2, 4), emphasis: true }],
+          formula: "x = [−b ± √(b²−4ac)] / 2a",
+          steps: [`Discriminant = ${b}² − 4×${a}×${c} = ${fmtNumber(disc, 4)}`],
+          table: {
+            headers: ["Term", "Value"],
+            rows: [
+              ["b²", fmtNumber(b * b, 4)],
+              ["4ac", fmtNumber(4 * a * c, 4)],
+              ["Discriminant (b² − 4ac)", fmtNumber(disc, 4)],
+              ["√Discriminant", fmtNumber(Math.sqrt(disc), 4)],
+              ["x₁ = (−b + √disc) / 2a", fmtNumber(x1, 4)],
+              ["x₂ = (−b − √disc) / 2a", fmtNumber(x2, 4)],
+            ],
+          },
+          chartCaption: "A positive discriminant means the parabola crosses the x-axis twice — two distinct real roots.",
+        };
       }
       if (disc === 0) {
         const x = -b / (2 * a);
-        return { results: [{ label: "x (double root)", value: fmtNumber(x, 4), emphasis: true }] };
+        return {
+          results: [{ label: "x (double root)", value: fmtNumber(x, 4), emphasis: true }],
+          formula: "x = −b / 2a",
+          steps: [`Discriminant = ${b}² − 4×${a}×${c} = 0`, `x = −${b} / (2×${a}) = ${fmtNumber(x, 4)}`],
+          notes: ["A discriminant of exactly 0 means the parabola just touches the x-axis at a single point — a repeated root."],
+        };
       }
       const real = -b / (2 * a);
       const imag = Math.sqrt(-disc) / (2 * a);
@@ -107,6 +173,15 @@ const math: CalculatorDefinition[] = [
           { label: "x₂", value: `${fmtNumber(real, 4)} − ${fmtNumber(imag, 4)}i`, emphasis: true },
         ],
         notes: ["The discriminant is negative, so the roots are complex (no real solutions)."],
+        table: {
+          headers: ["Term", "Value"],
+          rows: [
+            ["Discriminant (b² − 4ac)", fmtNumber(disc, 4)],
+            ["Real part (−b / 2a)", fmtNumber(real, 4)],
+            ["Imaginary part (√|disc| / 2a)", fmtNumber(imag, 4)],
+          ],
+        },
+        chartCaption: "A negative discriminant means the parabola never touches the x-axis — the roots exist only in the complex plane.",
       };
     },
     relatedSlugs: ["exponent-calculator"],
@@ -124,11 +199,39 @@ const math: CalculatorDefinition[] = [
       if (nums.length < 2) return { results: [], error: "Enter at least two non-zero numbers, separated by commas." };
       const g = nums.reduce((a, b) => gcd(a, b));
       const l = nums.reduce((a, b) => lcm(a, b));
+      const gcdSteps: string[] = [];
+      let runningG = Math.abs(Math.round(nums[0]));
+      for (let idx = 1; idx < nums.length; idx++) {
+        const next = Math.abs(Math.round(nums[idx]));
+        let x = runningG, y = next;
+        const euclid: string[] = [];
+        while (y) {
+          euclid.push(`${x} = ${Math.floor(x / y)}×${y} + ${x % y}`);
+          [x, y] = [y, x % y];
+        }
+        gcdSteps.push(`GCD(${runningG}, ${next}): ${euclid.join(", ")} → GCD = ${x}`);
+        runningG = gcd(runningG, next);
+      }
+      const lcmSteps: string[] = [];
+      let runningL = Math.abs(Math.round(nums[0]));
+      for (let idx = 1; idx < nums.length; idx++) {
+        const next = Math.abs(Math.round(nums[idx]));
+        const nextL = lcm(runningL, next);
+        lcmSteps.push(`LCM(${runningL}, ${next}) = (${runningL}×${next}) / GCD(${runningL}, ${next}) = ${fmtNumber(nextL, 0)}`);
+        runningL = nextL;
+      }
       return {
         results: [
           { label: "Greatest Common Factor", value: fmtNumber(g, 0), emphasis: true },
           { label: "Least Common Multiple", value: fmtNumber(l, 0), emphasis: true },
         ],
+        steps: [...gcdSteps, ...lcmSteps],
+        notes: ["The GCF is found with the Euclidean algorithm (repeated division with remainder); the LCM is built up pairwise using LCM(a,b) = (a×b) / GCD(a,b)."],
+        compare: [
+          { label: "GCF (largest shared factor)", value: g, displayValue: fmtNumber(g, 0) },
+          { label: "LCM (smallest shared multiple)", value: l, displayValue: fmtNumber(l, 0), highlight: true },
+        ],
+        chartCaption: `The GCF is always the smaller of the two — it divides every number in your list — while the LCM, the smallest number every one of them divides into, is always the larger (here ${fmtNumber(l / g, 0)}× bigger).`,
       };
     },
     relatedSlugs: ["fraction-calculator"],
@@ -157,6 +260,11 @@ const math: CalculatorDefinition[] = [
           { label: "Population Std. Deviation", value: fmtNumber(s.stdDevPop, 4) },
           { label: "Sample Variance", value: fmtNumber(s.varianceSample, 4) },
         ],
+        table: {
+          headers: ["Value", "Deviation (x − mean)", "Squared Deviation"],
+          rows: values.map((v) => [fmtNumber(v, 4), fmtNumber(v - s.mean, 4), fmtNumber((v - s.mean) ** 2, 4)]),
+        },
+        chartCaption: `Each row shows how far that data point sits from the mean (${fmtNumber(s.mean, 4)}) — squaring those distances and averaging them is exactly how the standard deviation above is built.`,
       };
     },
     relatedSlugs: ["standard-deviation-calculator", "z-score-calculator"],
@@ -181,6 +289,14 @@ const math: CalculatorDefinition[] = [
           { label: "Sample Variance", value: fmtNumber(s.varianceSample, 4) },
         ],
         formula: "σ = √(Σ(x − mean)² / N)",
+        compare: [
+          { label: "Population Std. Deviation (÷N)", value: s.stdDevPop, displayValue: fmtNumber(s.stdDevPop, 4) },
+          { label: "Sample Std. Deviation (÷N−1)", value: s.stdDevSample, displayValue: fmtNumber(s.stdDevSample, 4), highlight: true },
+        ],
+        chartCaption:
+          values.length > 1
+            ? `Dividing by N−1 instead of N makes the sample estimate a little wider — ${fmtNumber(s.stdDevSample, 4)} vs ${fmtNumber(s.stdDevPop, 4)} — to correct for only having a sample, not the whole population.`
+            : "With only one data point, standard deviation isn't meaningful — add more values for a real comparison.",
       };
     },
     relatedSlugs: ["statistics-calculator", "mean-median-mode-calculator"],
@@ -197,6 +313,13 @@ const math: CalculatorDefinition[] = [
       const values = parseNumberList(i.numbers || "");
       if (values.length === 0) return { results: [], error: "Enter at least one number, separated by commas." };
       const s = computeStats(values);
+      const compareItems: { label: string; value: number; displayValue: string; highlight?: boolean }[] = [
+        { label: "Mean", value: s.mean, displayValue: fmtNumber(s.mean, 4) },
+        { label: "Median", value: s.median, displayValue: fmtNumber(s.median, 4) },
+      ];
+      if (s.modes.length === 1) {
+        compareItems.push({ label: "Mode", value: s.modes[0], displayValue: fmtNumber(s.modes[0]) });
+      }
       return {
         results: [
           { label: "Mean", value: fmtNumber(s.mean, 4), emphasis: true },
@@ -204,6 +327,11 @@ const math: CalculatorDefinition[] = [
           { label: "Mode", value: s.modes.length ? s.modes.map((m) => fmtNumber(m)).join(", ") : "None", emphasis: true },
           { label: "Range", value: fmtNumber(s.range, 4) },
         ],
+        compare: compareItems,
+        chartCaption:
+          Math.abs(s.mean - s.median) < 1e-9
+            ? "Mean and median line up closely, which usually means the data set is fairly symmetric."
+            : `Mean and median differ (${fmtNumber(s.mean, 4)} vs ${fmtNumber(s.median, 4)}) — that gap is a sign the data set is skewed by some unusually high or low values.`,
       };
     },
     relatedSlugs: ["statistics-calculator"],
@@ -223,7 +351,15 @@ const math: CalculatorDefinition[] = [
       const exp = n(i.experimental), theo = n(i.theoretical);
       if (theo === 0) return { results: [], error: "Theoretical value cannot be zero." };
       const err = (Math.abs(exp - theo) / Math.abs(theo)) * 100;
-      return { results: [{ label: "Percent Error", value: `${fmtNumber(err, 3)}%`, emphasis: true }], steps: [`|${exp} − ${theo}| ÷ |${theo}| × 100 = ${fmtNumber(err, 3)}%`] };
+      return {
+        results: [{ label: "Percent Error", value: `${fmtNumber(err, 3)}%`, emphasis: true }],
+        steps: [`|${exp} − ${theo}| ÷ |${theo}| × 100 = ${fmtNumber(err, 3)}%`],
+        compare: [
+          { label: "Theoretical (Accepted)", value: theo, displayValue: fmtNumber(theo) },
+          { label: "Experimental (Measured)", value: exp, displayValue: fmtNumber(exp), highlight: true },
+        ],
+        chartCaption: `Your measured value is off from the accepted value by ${fmtNumber(err, 3)}% — the closer the two bars, the more accurate the measurement.`,
+      };
     },
     relatedSlugs: ["percentage-calculator"],
   },
@@ -241,7 +377,39 @@ const math: CalculatorDefinition[] = [
     calculate: (i) => {
       const base = n(i.base, 2), exp = n(i.exponent, 1);
       const result = Math.pow(base, exp);
-      return { results: [{ label: "Result", value: fmtNumber(result, 6), emphasis: true }], steps: [`${base}^${exp} = ${fmtNumber(result, 6)}`] };
+      const steps = [`${base}^${exp} = ${fmtNumber(result, 6)}`];
+      if (Number.isInteger(exp) && exp >= 2 && exp <= 12) {
+        steps.push(`${base} multiplied by itself ${exp} times: ${Array(exp).fill(fmtNumber(base)).join(" × ")} = ${fmtNumber(result, 6)}`);
+      } else if (exp === 0) {
+        steps.push("Any non-zero number raised to the power of 0 is 1.");
+      } else if (Number.isInteger(exp) && exp < 0) {
+        steps.push(`A negative exponent means "1 over": ${base}^${exp} = 1 / ${base}^${-exp} = ${fmtNumber(result, 6)}`);
+      } else if (!Number.isInteger(exp)) {
+        steps.push(`A fractional exponent mixes a power and a root: ${base}^${fmtNumber(exp, 4)} = ${fmtNumber(result, 6)}`);
+      }
+      const results = [{ label: "Result", value: fmtNumber(result, 6), emphasis: true }];
+      if (base > 0 && Number.isInteger(exp) && exp >= 2 && exp <= 12) {
+        const growthSeries = Array.from({ length: exp }, (_, idx) => {
+          const power = idx + 1;
+          const val = Math.pow(base, power);
+          return { label: `${fmtNumber(base)}^${power}`, value: val, displayValue: fmtNumber(val, 6) };
+        });
+        return {
+          results,
+          steps,
+          growthSeries,
+          chartCaption: `Each step multiplies by ${fmtNumber(base)} again — watch how fast ${fmtNumber(base)}^${exp} builds up to ${fmtNumber(result, 6)} from ${fmtNumber(base)}^1.`,
+        };
+      }
+      return {
+        results,
+        steps,
+        compare: [
+          { label: "Base", value: base, displayValue: fmtNumber(base, 6) },
+          { label: "Result", value: result, displayValue: fmtNumber(result, 6), highlight: true },
+        ],
+        chartCaption: `${fmtNumber(base)} raised to the power ${fmtNumber(exp, 4)} sized up against the original base.`,
+      };
     },
     relatedSlugs: ["root-calculator", "log-calculator"],
   },
@@ -260,7 +428,18 @@ const math: CalculatorDefinition[] = [
       const value = n(i.value, 27), degree = Math.max(1, n(i.degree, 2));
       if (value < 0 && degree % 2 === 0) return { results: [], error: "Even roots of a negative number are not real." };
       const result = value < 0 ? -Math.pow(-value, 1 / degree) : Math.pow(value, 1 / degree);
-      return { results: [{ label: "Result", value: fmtNumber(result, 6), emphasis: true }], steps: [`${degree}√${value} = ${fmtNumber(result, 6)}`] };
+      return {
+        results: [{ label: "Result", value: fmtNumber(result, 6), emphasis: true }],
+        steps: [
+          `${degree}√${value} = ${fmtNumber(result, 6)}`,
+          `Check: ${fmtNumber(result, 6)}^${degree} ≈ ${fmtNumber(Math.pow(result, degree), 6)}`,
+        ],
+        compare: [
+          { label: "Original Value", value, displayValue: fmtNumber(value, 6) },
+          { label: `${degree}√ Result`, value: result, displayValue: fmtNumber(result, 6), highlight: true },
+        ],
+        chartCaption: `Sizing up ${fmtNumber(value, 6)} against its ${degree}-degree root — the further apart the bars, the more root-taking shrinks the number.`,
+      };
     },
     relatedSlugs: ["exponent-calculator"],
   },
@@ -284,6 +463,15 @@ const math: CalculatorDefinition[] = [
           { label: `log_${fmtNumber(base)}(${fmtNumber(value)})`, value: fmtNumber(result, 6), emphasis: true },
           { label: "Natural Log ln(x)", value: fmtNumber(Math.log(value), 6) },
         ],
+        steps: [
+          `A logarithm asks "what power do I raise the base to?" — log_${fmtNumber(base)}(${fmtNumber(value)}) = ${fmtNumber(result, 6)}`,
+          `Check: ${fmtNumber(base)}^${fmtNumber(result, 6)} ≈ ${fmtNumber(value)}`,
+        ],
+        compare: [
+          { label: "Input Value (x)", value, displayValue: fmtNumber(value, 6) },
+          { label: `log_${fmtNumber(base)}(x)`, value: result, displayValue: fmtNumber(result, 6), highlight: true },
+        ],
+        chartCaption: `Logarithms compress scale — ${fmtNumber(value, 6)} collapses down to just ${fmtNumber(result, 6)} once you ask "what power of ${fmtNumber(base)} gives this?"`,
       };
     },
     relatedSlugs: ["exponent-calculator"],
@@ -310,10 +498,28 @@ const math: CalculatorDefinition[] = [
         const c = n(i.c, 1);
         if (a === 0) return { results: [], error: "A cannot be 0." };
         const d = (b * c) / a;
-        return { results: [{ label: "Missing Value (D)", value: fmtNumber(d, 4), emphasis: true }], steps: [`${a}:${b} = ${c}:D → D = (${b}×${c})/${a} = ${fmtNumber(d, 4)}`] };
+        return {
+          results: [{ label: "Missing Value (D)", value: fmtNumber(d, 4), emphasis: true }],
+          steps: [`${a}:${b} = ${c}:D → D = (${b}×${c})/${a} = ${fmtNumber(d, 4)}`],
+          compare: [
+            { label: "A", value: a, displayValue: fmtNumber(a) },
+            { label: "B", value: b, displayValue: fmtNumber(b) },
+            { label: "C", value: c, displayValue: fmtNumber(c) },
+            { label: "D", value: d, displayValue: fmtNumber(d, 4), highlight: true },
+          ],
+          chartCaption: "A:B and C:D are equivalent ratios, so all four bars grow by the same scale factor — that's what makes the proportion true.",
+        };
       }
       const g = gcd(a, b) || 1;
-      return { results: [{ label: "Simplified Ratio", value: `${a / g} : ${b / g}`, emphasis: true }], steps: [`GCD(${a}, ${b}) = ${g} → ${a}/${g} : ${b}/${g}`] };
+      return {
+        results: [{ label: "Simplified Ratio", value: `${a / g} : ${b / g}`, emphasis: true }],
+        steps: [`GCD(${a}, ${b}) = ${g} → ${a}/${g} : ${b}/${g}`],
+        compare: [
+          { label: "A", value: a, displayValue: fmtNumber(a) },
+          { label: "B", value: b, displayValue: fmtNumber(b) },
+        ],
+        chartCaption: `${a} and ${b} simplify down to ${a / g}:${b / g} — same proportion, smaller numbers.`,
+      };
     },
     relatedSlugs: ["fraction-calculator", "percentage-calculator"],
   },
@@ -349,6 +555,12 @@ const math: CalculatorDefinition[] = [
           { label: "Angle C (opp. side c)", value: `${fmtNumber(C, 2)}°` },
         ],
         formula: "Area = √(s(s−a)(s−b)(s−c)), s = perimeter/2",
+        breakdown: [
+          { label: "Angle A", value: A, displayValue: `${fmtNumber(A, 2)}°` },
+          { label: "Angle B", value: B, displayValue: `${fmtNumber(B, 2)}°` },
+          { label: "Angle C", value: C, displayValue: `${fmtNumber(C, 2)}°` },
+        ],
+        chartCaption: "Every triangle's three angles add up to exactly 180° — this donut shows how that total splits between the three corners.",
       };
     },
     relatedSlugs: ["pythagorean-theorem-calculator", "circle-calculator"],
@@ -375,11 +587,28 @@ const math: CalculatorDefinition[] = [
         const c = n(i.c);
         if (c <= a) return { results: [], error: "The hypotenuse must be longer than leg a." };
         const b = Math.sqrt(c * c - a * a);
-        return { results: [{ label: "Leg b", value: fmtNumber(b, 4), emphasis: true }], steps: [`b = √(c² − a²) = √(${c}² − ${a}²) = ${fmtNumber(b, 4)}`] };
+        return {
+          results: [{ label: "Leg b", value: fmtNumber(b, 4), emphasis: true }],
+          steps: [`b = √(c² − a²) = √(${c}² − ${a}²) = ${fmtNumber(b, 4)}`],
+          breakdown: [
+            { label: "a²", value: a * a, displayValue: fmtNumber(a * a, 4) },
+            { label: "b²", value: b * b, displayValue: fmtNumber(b * b, 4) },
+          ],
+          chartCaption: `The classic picture: a square built on side a plus a square built on side b together cover exactly the same area as a square built on the hypotenuse (c² = ${fmtNumber(c * c, 4)}).`,
+        };
       }
       const b = n(i.b);
       const c = Math.sqrt(a * a + b * b);
-      return { results: [{ label: "Hypotenuse c", value: fmtNumber(c, 4), emphasis: true }], formula: "c = √(a² + b²)", steps: [`c = √(${a}² + ${b}²) = ${fmtNumber(c, 4)}`] };
+      return {
+        results: [{ label: "Hypotenuse c", value: fmtNumber(c, 4), emphasis: true }],
+        formula: "c = √(a² + b²)",
+        steps: [`c = √(${a}² + ${b}²) = ${fmtNumber(c, 4)}`],
+        breakdown: [
+          { label: "a²", value: a * a, displayValue: fmtNumber(a * a, 4) },
+          { label: "b²", value: b * b, displayValue: fmtNumber(b * b, 4) },
+        ],
+        chartCaption: `The classic picture: a square built on side a plus a square built on side b together cover exactly the same area as a square built on the hypotenuse (c² = ${fmtNumber(c * c, 4)}).`,
+      };
     },
     relatedSlugs: ["triangle-calculator"],
   },
@@ -412,6 +641,16 @@ const math: CalculatorDefinition[] = [
           { label: "Circumference", value: fmtNumber(2 * Math.PI * r, 4) },
           { label: "Area", value: fmtNumber(Math.PI * r * r, 4) },
         ],
+        table: {
+          headers: ["Property", "Formula", "Value"],
+          rows: [
+            ["Radius", "r", fmtNumber(r, 4)],
+            ["Diameter", "2r", fmtNumber(r * 2, 4)],
+            ["Circumference", "2πr", fmtNumber(2 * Math.PI * r, 4)],
+            ["Area", "πr²", fmtNumber(Math.PI * r * r, 4)],
+          ],
+        },
+        chartCaption: "Every circle measurement is derived from the same radius — this table shows exactly which formula produces each one.",
       };
     },
     relatedSlugs: ["area-calculator", "triangle-calculator"],
@@ -436,13 +675,71 @@ const math: CalculatorDefinition[] = [
     ],
     calculate: (i) => {
       let area = 0, formula = "";
+      let steps: string[] = [];
       switch (i.shape) {
-        case "triangle": area = 0.5 * n(i.width) * n(i.height); formula = "Area = ½ × base × height"; break;
-        case "circle": area = Math.PI * n(i.radius) ** 2; formula = "Area = π × r²"; break;
-        case "trapezoid": area = 0.5 * (n(i.base1) + n(i.base2)) * n(i.trapHeight); formula = "Area = ½ × (b₁+b₂) × height"; break;
-        default: area = n(i.width) * n(i.height); formula = "Area = width × height";
+        case "triangle":
+          area = 0.5 * n(i.width) * n(i.height);
+          formula = "Area = ½ × base × height";
+          steps = [`Area = ½ × ${fmtNumber(n(i.width))} × ${fmtNumber(n(i.height))} = ${fmtNumber(area, 4)}`];
+          break;
+        case "circle":
+          area = Math.PI * n(i.radius) ** 2;
+          formula = "Area = π × r²";
+          steps = [`Area = π × ${fmtNumber(n(i.radius))}² = ${fmtNumber(area, 4)}`];
+          break;
+        case "trapezoid":
+          area = 0.5 * (n(i.base1) + n(i.base2)) * n(i.trapHeight);
+          formula = "Area = ½ × (b₁+b₂) × height";
+          steps = [`Area = ½ × (${fmtNumber(n(i.base1))} + ${fmtNumber(n(i.base2))}) × ${fmtNumber(n(i.trapHeight))} = ${fmtNumber(area, 4)}`];
+          break;
+        default:
+          area = n(i.width) * n(i.height);
+          formula = "Area = width × height";
+          steps = [`Area = ${fmtNumber(n(i.width))} × ${fmtNumber(n(i.height))} = ${fmtNumber(area, 4)}`];
       }
-      return { results: [{ label: "Area", value: fmtNumber(area, 4), emphasis: true }], formula };
+
+      let compare: { label: string; value: number; displayValue: string; highlight?: boolean }[] | undefined;
+      let table: { headers: string[]; rows: string[][] } | undefined;
+      let chartCaption: string | undefined;
+      switch (i.shape) {
+        case "triangle":
+          compare = [
+            { label: "Base", value: n(i.width), displayValue: fmtNumber(n(i.width), 4) },
+            { label: "Height", value: n(i.height), displayValue: fmtNumber(n(i.height), 4) },
+          ];
+          chartCaption = "The triangle's base and height sized up side by side — the area is half of the rectangle they'd form together.";
+          break;
+        case "circle": {
+          const r = n(i.radius);
+          table = {
+            headers: ["Property", "Formula", "Value"],
+            rows: [
+              ["Radius", "r", fmtNumber(r, 4)],
+              ["Diameter", "2r", fmtNumber(r * 2, 4)],
+              ["Circumference", "2πr", fmtNumber(2 * Math.PI * r, 4)],
+              ["Area", "πr²", fmtNumber(area, 4)],
+            ],
+          };
+          chartCaption = "Every one of these is derived from the same radius — this table shows exactly which formula produces each measurement.";
+          break;
+        }
+        case "trapezoid":
+          compare = [
+            { label: "Parallel Side 1", value: n(i.base1), displayValue: fmtNumber(n(i.base1), 4) },
+            { label: "Parallel Side 2", value: n(i.base2), displayValue: fmtNumber(n(i.base2), 4) },
+            { label: "Height", value: n(i.trapHeight), displayValue: fmtNumber(n(i.trapHeight), 4) },
+          ];
+          chartCaption = "The trapezoid's two parallel sides and the height between them, sized up together.";
+          break;
+        default:
+          compare = [
+            { label: "Width", value: n(i.width), displayValue: fmtNumber(n(i.width), 4) },
+            { label: "Height", value: n(i.height), displayValue: fmtNumber(n(i.height), 4) },
+          ];
+          chartCaption = "The rectangle's width and height sized up side by side — the area is the space they enclose together.";
+      }
+
+      return { results: [{ label: "Area", value: fmtNumber(area, 4), emphasis: true }], formula, steps, compare, table, chartCaption };
     },
     relatedSlugs: ["circle-calculator", "volume-calculator"],
   },
@@ -465,14 +762,52 @@ const math: CalculatorDefinition[] = [
     ],
     calculate: (i) => {
       let volume = 0, formula = "";
+      let steps: string[] = [];
+      let compare: { label: string; value: number; displayValue: string; highlight?: boolean }[] | undefined;
+      let chartCaption: string | undefined;
       switch (i.shape) {
-        case "cube": volume = n(i.side) ** 3; formula = "V = side³"; break;
-        case "sphere": volume = (4 / 3) * Math.PI * n(i.radius) ** 3; formula = "V = (4/3)πr³"; break;
-        case "cylinder": volume = Math.PI * n(i.radius) ** 2 * n(i.height); formula = "V = πr²h"; break;
-        case "cone": volume = (1 / 3) * Math.PI * n(i.radius) ** 2 * n(i.height); formula = "V = (1/3)πr²h"; break;
-        default: volume = n(i.length) * n(i.width) * n(i.height); formula = "V = length × width × height";
+        case "cube":
+          volume = n(i.side) ** 3;
+          formula = "V = side³";
+          steps = [`V = ${fmtNumber(n(i.side))}³ = ${fmtNumber(volume, 4)}`];
+          break;
+        case "sphere": {
+          const r = n(i.radius);
+          volume = (4 / 3) * Math.PI * r ** 3;
+          formula = "V = (4/3)πr³";
+          steps = [`V = (4/3) × π × ${fmtNumber(r)}³ = ${fmtNumber(volume, 4)}`];
+          const cylinderVol = Math.PI * r ** 2 * (2 * r);
+          compare = [
+            { label: "Sphere", value: volume, displayValue: fmtNumber(volume, 4), highlight: true },
+            { label: "Tightest-fit Cylinder", value: cylinderVol, displayValue: fmtNumber(cylinderVol, 4) },
+          ];
+          chartCaption = "Archimedes' famous result: a sphere's volume is always exactly two-thirds of the cylinder that tightly wraps around it (same radius, height = diameter).";
+          break;
+        }
+        case "cylinder":
+          volume = Math.PI * n(i.radius) ** 2 * n(i.height);
+          formula = "V = πr²h";
+          steps = [`V = π × ${fmtNumber(n(i.radius))}² × ${fmtNumber(n(i.height))} = ${fmtNumber(volume, 4)}`];
+          break;
+        case "cone": {
+          const r = n(i.radius), h = n(i.height);
+          volume = (1 / 3) * Math.PI * r ** 2 * h;
+          formula = "V = (1/3)πr²h";
+          steps = [`V = (1/3) × π × ${fmtNumber(r)}² × ${fmtNumber(h)} = ${fmtNumber(volume, 4)}`];
+          const cylinderVol = Math.PI * r ** 2 * h;
+          compare = [
+            { label: "Cone", value: volume, displayValue: fmtNumber(volume, 4), highlight: true },
+            { label: "Same Base & Height Cylinder", value: cylinderVol, displayValue: fmtNumber(cylinderVol, 4) },
+          ];
+          chartCaption = "A cone is always exactly ⅓ the volume of a cylinder that shares its base and height — no matter the size.";
+          break;
+        }
+        default:
+          volume = n(i.length) * n(i.width) * n(i.height);
+          formula = "V = length × width × height";
+          steps = [`V = ${fmtNumber(n(i.length))} × ${fmtNumber(n(i.width))} × ${fmtNumber(n(i.height))} = ${fmtNumber(volume, 4)}`];
       }
-      return { results: [{ label: "Volume", value: fmtNumber(volume, 4), emphasis: true }], formula };
+      return { results: [{ label: "Volume", value: fmtNumber(volume, 4), emphasis: true }], formula, steps, compare, chartCaption };
     },
     relatedSlugs: ["area-calculator"],
   },
@@ -496,17 +831,40 @@ const math: CalculatorDefinition[] = [
     calculate: (i) => {
       if (i.mode === "two") {
         const a = n(i.probA, 50) / 100, b = n(i.probB, 30) / 100;
+        const pAnd = a * b, pOr = a + b - a * b;
         return {
           results: [
-            { label: "P(A and B)", value: `${fmtNumber(a * b * 100, 3)}%`, emphasis: true },
-            { label: "P(A or B)", value: `${fmtNumber((a + b - a * b) * 100, 3)}%`, emphasis: true },
+            { label: "P(A and B)", value: `${fmtNumber(pAnd * 100, 3)}%`, emphasis: true },
+            { label: "P(A or B)", value: `${fmtNumber(pOr * 100, 3)}%`, emphasis: true },
           ],
+          compare: [
+            { label: "P(A)", value: a * 100, displayValue: `${fmtNumber(a * 100, 3)}%` },
+            { label: "P(B)", value: b * 100, displayValue: `${fmtNumber(b * 100, 3)}%` },
+            { label: "P(A and B)", value: pAnd * 100, displayValue: `${fmtNumber(pAnd * 100, 3)}%` },
+            { label: "P(A or B)", value: pOr * 100, displayValue: `${fmtNumber(pOr * 100, 3)}%`, highlight: true },
+          ],
+          chartCaption: `"And" requires both events, so it's always the smallest bar; "or" only needs one of the two, so it's always at least as big as P(A) and P(B) alone.`,
         };
       }
       const fav = n(i.favorable, 1), total = n(i.total, 6);
       if (total <= 0 || fav < 0 || fav > total) return { results: [], error: "Favorable outcomes must be between 0 and total outcomes." };
       const p = (fav / total) * 100;
-      return { results: [{ label: "Probability", value: `${fmtNumber(p, 3)}%`, emphasis: true }, { label: "As a Fraction", value: `${fav}/${total}` }] };
+      return {
+        results: [{ label: "Probability", value: `${fmtNumber(p, 3)}%`, emphasis: true }, { label: "As a Fraction", value: `${fav}/${total}` }],
+        gauge: {
+          value: p,
+          min: 0,
+          max: 100,
+          valueLabel: `${fmtNumber(p, 1)}%`,
+          zones: [
+            { label: "Unlikely", to: 25, barClass: "bg-red-400 dark:bg-red-500", textClass: "text-red-600 dark:text-red-400" },
+            { label: "Possible", to: 50, barClass: "bg-amber-400 dark:bg-amber-500", textClass: "text-amber-600 dark:text-amber-400" },
+            { label: "Likely", to: 75, barClass: "bg-teal-500 dark:bg-teal-400", textClass: "text-teal-600 dark:text-teal-400" },
+            { label: "Very Likely", to: 100, barClass: "bg-sky-400 dark:bg-sky-500", textClass: "text-sky-600 dark:text-sky-400" },
+          ],
+        },
+        chartCaption: `A ${fmtNumber(p, 1)}% chance sits in the "${p < 25 ? "Unlikely" : p < 50 ? "Possible" : p < 75 ? "Likely" : "Very Likely"}" zone.`,
+      };
     },
     relatedSlugs: ["permutation-and-combination-calculator"],
   },
@@ -532,6 +890,14 @@ const math: CalculatorDefinition[] = [
           { label: `P(${nv},${rv}) — Permutations`, value: fmtNumber(nPr, 0), emphasis: true },
           { label: `C(${nv},${rv}) — Combinations`, value: fmtNumber(nCr, 0), emphasis: true },
         ],
+        compare: [
+          { label: "nPr — order matters", value: nPr, displayValue: fmtNumber(nPr, 0), highlight: true },
+          { label: "nCr — order doesn't matter", value: nCr, displayValue: fmtNumber(nCr, 0) },
+        ],
+        chartCaption:
+          rv > 1
+            ? `Every group of ${rv} items can be arranged ${fmtNumber(factorial(rv), 0)} different ways, which is exactly why nPr is ${fmtNumber(factorial(rv), 0)}× bigger than nCr here.`
+            : `With r = ${rv}, order doesn't create any extra arrangements, so nPr and nCr come out the same.`,
       };
     },
     relatedSlugs: ["probability-calculator"],
@@ -560,6 +926,19 @@ const math: CalculatorDefinition[] = [
         ],
         formula: "z = (x − μ) / σ",
         steps: [`z = (${x} − ${mean}) / ${sd} = ${fmtNumber(z, 4)}`],
+        gauge: {
+          value: percentile,
+          min: 0,
+          max: 100,
+          valueLabel: `${fmtNumber(percentile, 1)}%`,
+          zones: [
+            { label: "Well Below Average", to: 16, barClass: "bg-red-400 dark:bg-red-500", textClass: "text-red-600 dark:text-red-400" },
+            { label: "Below Average", to: 50, barClass: "bg-amber-400 dark:bg-amber-500", textClass: "text-amber-600 dark:text-amber-400" },
+            { label: "Above Average", to: 84, barClass: "bg-teal-500 dark:bg-teal-400", textClass: "text-teal-600 dark:text-teal-400" },
+            { label: "Well Above Average", to: 100, barClass: "bg-sky-400 dark:bg-sky-500", textClass: "text-sky-600 dark:text-sky-400" },
+          ],
+        },
+        chartCaption: `A value of ${fmtNumber(x)} sits at the ${fmtNumber(percentile, 1)}th percentile — meaning it beats about ${fmtNumber(percentile, 0)}% of a normally distributed population.`,
       };
     },
     relatedSlugs: ["statistics-calculator"],
@@ -578,12 +957,25 @@ const math: CalculatorDefinition[] = [
     calculate: (i) => {
       const value = n(i.value), decimals = Math.max(0, Math.round(n(i.decimals, 2)));
       const factor = Math.pow(10, decimals);
+      const rounded = round(value, decimals);
+      const nextDigit = Math.floor(Math.abs(value) * factor * 10) % 10;
       return {
         results: [
-          { label: "Rounded", value: fmtNumber(round(value, decimals), decimals), emphasis: true },
+          { label: "Rounded", value: fmtNumber(rounded, decimals), emphasis: true },
           { label: "Rounded Up", value: fmtNumber(Math.ceil(value * factor) / factor, decimals) },
           { label: "Rounded Down", value: fmtNumber(Math.floor(value * factor) / factor, decimals) },
         ],
+        steps: [
+          `Look at the digit right after decimal place ${decimals}: it's ${nextDigit}.`,
+          nextDigit >= 5
+            ? `${nextDigit} ≥ 5, so the last kept digit rounds up → ${fmtNumber(rounded, decimals)}`
+            : `${nextDigit} < 5, so the last kept digit stays the same → ${fmtNumber(rounded, decimals)}`,
+        ],
+        compare: [
+          { label: "Original Value", value, displayValue: fmtNumber(value, Math.max(decimals, 6)) },
+          { label: "Rounded Value", value: rounded, displayValue: fmtNumber(rounded, decimals), highlight: true },
+        ],
+        chartCaption: `Rounding to ${decimals} decimal place${decimals === 1 ? "" : "s"} moves ${fmtNumber(value, Math.max(decimals, 6))} to ${fmtNumber(rounded, decimals)}.`,
       };
     },
     relatedSlugs: ["scientific-notation-calculator"],
@@ -606,6 +998,20 @@ const math: CalculatorDefinition[] = [
       const raw = (i.value || "").trim();
       const parsed = parseInt(raw, from);
       if (!raw || Number.isNaN(parsed)) return { results: [], error: `"${raw}" is not a valid base-${from} number.` };
+      const isNegative = raw.startsWith("-");
+      const digits = (isNegative ? raw.slice(1) : raw).toUpperCase().split("");
+      const validDigits = digits.every((d) => !Number.isNaN(parseInt(d, from)));
+      const table =
+        !isNegative && validDigits
+          ? {
+              headers: ["Digit", "Place Value", "Contributes"],
+              rows: digits.map((d, idx) => {
+                const power = digits.length - 1 - idx;
+                const digitValue = parseInt(d, from);
+                return [d, `${from}^${power}`, fmtNumber(digitValue * Math.pow(from, power), 0)];
+              }),
+            }
+          : undefined;
       return {
         results: [
           { label: "Binary", value: parsed.toString(2), emphasis: from !== 2 },
@@ -613,6 +1019,8 @@ const math: CalculatorDefinition[] = [
           { label: "Decimal", value: parsed.toString(10), emphasis: from !== 10 },
           { label: "Hexadecimal", value: parsed.toString(16).toUpperCase(), emphasis: from !== 16 },
         ],
+        table,
+        chartCaption: table ? `Each digit is worth its face value times ${from} raised to its position — add those up and you get ${parsed} in decimal.` : undefined,
       };
     },
     relatedSlugs: ["scientific-notation-calculator"],
@@ -635,14 +1043,37 @@ const math: CalculatorDefinition[] = [
     ],
     calculate: (i) => {
       if (i.mode === "fromSci") {
-        const result = n(i.coefficient, 1) * Math.pow(10, n(i.exponent, 0));
-        return { results: [{ label: "Number", value: fmtNumber(result, 10), emphasis: true }] };
+        const coeff = n(i.coefficient, 1), exp = n(i.exponent, 0);
+        const result = coeff * Math.pow(10, exp);
+        return {
+          results: [{ label: "Number", value: fmtNumber(result, 10), emphasis: true }],
+          steps: [`${fmtNumber(coeff)} × 10^${fmtNumber(exp, 0)} means shifting the decimal point ${Math.abs(exp)} places ${exp >= 0 ? "right" : "left"} → ${fmtNumber(result, 10)}`],
+          table: {
+            headers: ["Form", "Value"],
+            rows: [
+              ["Scientific Form", `${fmtNumber(coeff)} × 10^${fmtNumber(exp, 0)}`],
+              ["Standard Form", fmtNumber(result, 10)],
+            ],
+          },
+          chartCaption: "Same value, two representations — the exponent tells you how far the decimal point shifts to get from one to the other.",
+        };
       }
       const value = n(i.value, 0);
       if (value === 0) return { results: [{ label: "Scientific Notation", value: "0 × 10^0", emphasis: true }] };
       const exp = Math.floor(Math.log10(Math.abs(value)));
       const coeff = value / Math.pow(10, exp);
-      return { results: [{ label: "Scientific Notation", value: `${fmtNumber(coeff, 6)} × 10^${exp}`, emphasis: true }] };
+      return {
+        results: [{ label: "Scientific Notation", value: `${fmtNumber(coeff, 6)} × 10^${exp}`, emphasis: true }],
+        steps: [`Move the decimal point until only one nonzero digit remains before it: ${fmtNumber(value)} → ${fmtNumber(coeff, 6)} × 10^${exp} (moved ${Math.abs(exp)} places ${exp >= 0 ? "left" : "right"}).`],
+        table: {
+          headers: ["Form", "Value"],
+          rows: [
+            ["Standard Form", fmtNumber(value, 10)],
+            ["Scientific Form", `${fmtNumber(coeff, 6)} × 10^${exp}`],
+          ],
+        },
+        chartCaption: "Same value, two representations — the exponent tells you how far the decimal point shifts to get from one to the other.",
+      };
     },
     relatedSlugs: ["rounding-calculator"],
   },

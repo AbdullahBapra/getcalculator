@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { getCalculator } from "@/lib/calculators/registry";
 import type { CalcOutput, FieldDef } from "@/lib/calculators/types";
@@ -9,6 +9,12 @@ import { useCurrency } from "@/components/currency/CurrencyContext";
 import CurrencySwitcher from "@/components/currency/CurrencySwitcher";
 import { getHistory, addHistoryEntry, clearHistory as clearHistoryStorage, type HistoryEntry } from "@/lib/history";
 import Field from "./Field";
+import AnimatedNumber from "./AnimatedNumber";
+import ResultChart from "./ResultChart";
+import ResultGauge from "./ResultGauge";
+import ResultGrowthChart from "./ResultGrowthChart";
+import ResultCompare from "./ResultCompare";
+import ResultTable from "./ResultTable";
 
 interface Props {
   slug: string;
@@ -68,6 +74,23 @@ export default function CalculatorShell({ slug }: Props) {
   const handleChange = useCallback((name: string, value: string) => {
     setInputs((prev) => ({ ...prev, [name]: value }));
   }, []);
+
+  // A brief "just updated" ring around the result card on every change — purely a
+  // presentation flag (a boolean CSS class), never touches the actual computed value,
+  // so it can't introduce a calculation bug even if this logic is wrong.
+  const [pulse, setPulse] = useState(false);
+  const prevResultRef = useRef<string | null>(null);
+  useEffect(() => {
+    const primary = output.results.find((r) => r.emphasis) ?? output.results[0];
+    const current = primary ? `${primary.value}${primary.unit ?? ""}` : (output.error ?? null);
+    if (prevResultRef.current !== null && prevResultRef.current !== current) {
+      setPulse(true);
+      const t = setTimeout(() => setPulse(false), 700);
+      prevResultRef.current = current;
+      return () => clearTimeout(t);
+    }
+    prevResultRef.current = current;
+  }, [output]);
 
   if (!def) return null;
 
@@ -138,8 +161,43 @@ export default function CalculatorShell({ slug }: Props) {
   }
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.1fr_1fr]">
-      <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60">
+    // minmax(0, …) on both tracks, not just 1.1fr/1fr — without it a grid item is never
+    // allowed to shrink below its content's intrinsic width, so one wide nowrap result
+    // (e.g. hundreds of comma-separated random numbers) blows out the whole grid track,
+    // and with it the page, into a giant horizontal scroll instead of scrolling locally.
+    // Below lg this is a plain stacked flex column (order utilities need a flex/grid
+    // container to do anything) so the sticky primary result, the form, and the rest of
+    // the result cards can be reordered independently of their source order — a real
+    // calculator app shows its live display above the keypad, not below it, so the
+    // result comes first and stays pinned under the header while you edit the inputs
+    // beneath it. At lg+ this reverts to the original two-column side-by-side layout via
+    // explicit grid placement, since both sides are already fully visible there.
+    <div className="flex flex-col gap-6 lg:grid lg:items-start lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)]">
+      <div
+        className={`min-w-0 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition-shadow sm:p-7 dark:border-zinc-800 dark:bg-zinc-900/60 ${pulse ? "result-pulse" : ""} order-1 sticky top-[70px] z-20 lg:static lg:order-2 lg:col-start-2 lg:row-start-1`}
+        aria-live="polite"
+      >
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-50 font-mono text-sm font-bold text-teal-600 dark:bg-teal-950/50 dark:text-teal-400">
+            =
+          </span>
+          <span className="flex items-center gap-2 text-sm font-semibold text-zinc-500 dark:text-zinc-400">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-500" />
+            {output.error ? "Error" : primaryResult?.label ?? "Result"}
+          </span>
+        </div>
+        <div className="mt-2 overflow-x-auto pl-[38px] font-mono text-4xl font-bold text-nowrap tabular-nums text-teal-600 sm:text-[42px] dark:text-teal-400">
+          {output.error ? (
+            <span className="text-lg font-semibold text-red-600 dark:text-red-400">{output.error}</span>
+          ) : primaryResult ? (
+            <AnimatedNumber value={`${displayValue(primaryResult.value)}${primaryResult.unit ? ` ${primaryResult.unit}` : ""}`} />
+          ) : (
+            <span className="text-zinc-300 dark:text-zinc-700">—</span>
+          )}
+        </div>
+      </div>
+
+      <div className="order-2 rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm lg:order-1 lg:col-start-1 lg:row-start-1 lg:row-span-2 dark:border-zinc-800 dark:bg-zinc-900/60">
         {showCurrencyPicker && (
           <div className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-zinc-50 px-3 py-2 dark:bg-zinc-800/60">
             <span className="text-xs text-zinc-500 dark:text-zinc-400">Currency for this calculator</span>
@@ -148,8 +206,13 @@ export default function CalculatorShell({ slug }: Props) {
         )}
         <form className="grid gap-4 sm:grid-cols-2" onSubmit={(e) => e.preventDefault()}>
           {displayFields.map((f) => (
-            <div key={f.name} className={wideField(f.name) ? "sm:col-span-2" : ""}>
-              <Field field={f} value={inputs[f.name] ?? ""} onChange={handleChange} />
+            // A convertPair field's big text-2xl input plus its embedded unit-toggle
+            // pill needs more room than a half-width grid cell has to give — squeezed
+            // into one column, the pill's reserved padding leaves almost no space for
+            // the digits themselves, so the value renders cropped. Always give it the
+            // full row.
+            <div key={f.name} className={wideField(f.name) || f.convertPair ? "sm:col-span-2" : ""}>
+              <Field field={f} value={inputs[f.name] ?? ""} onChange={handleChange} allInputs={inputs} />
             </div>
           ))}
         </form>
@@ -171,22 +234,66 @@ export default function CalculatorShell({ slug }: Props) {
         </div>
       </div>
 
-      <div className="flex flex-col gap-4">
-        <div className="rounded-2xl border border-zinc-200 bg-white p-7 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60" aria-live="polite">
-          <div className="flex items-center gap-2 text-sm font-semibold text-zinc-500 dark:text-zinc-400">
-            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal-500" />
-            {output.error ? "Error" : primaryResult?.label ?? "Result"}
-          </div>
-          <div className="mt-2 overflow-x-auto whitespace-nowrap font-mono text-4xl font-bold tabular-nums text-teal-600 sm:text-[42px] dark:text-teal-400">
-            {output.error ? (
-              <span className="text-lg font-semibold text-red-600 dark:text-red-400">{output.error}</span>
-            ) : primaryResult ? (
-              `${displayValue(primaryResult.value)}${primaryResult.unit ? ` ${primaryResult.unit}` : ""}`
-            ) : (
-              <span className="text-zinc-300 dark:text-zinc-700">—</span>
+      <div className="order-3 flex min-w-0 flex-col gap-4 lg:col-start-2 lg:row-start-2">
+        {!output.error && output.breakdown && output.breakdown.length > 0 && (
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60">
+            <div className="mb-1 text-sm font-semibold text-zinc-800 dark:text-zinc-200">Breakdown</div>
+            <ResultChart segments={output.breakdown.map((s) => ({ ...s, displayValue: displayValue(s.displayValue) }))} />
+            {output.chartCaption && (
+              <p className="mt-4 rounded-lg bg-teal-50 px-3 py-2.5 text-xs leading-relaxed text-teal-800 dark:bg-teal-950/30 dark:text-teal-300">
+                {output.chartCaption}
+              </p>
             )}
           </div>
-        </div>
+        )}
+
+        {!output.error && output.gauge && (
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60">
+            <div className="mb-4 text-sm font-semibold text-zinc-800 dark:text-zinc-200">Where this falls</div>
+            <ResultGauge {...output.gauge} />
+            {output.chartCaption && (
+              <p className="mt-4 rounded-lg bg-teal-50 px-3 py-2.5 text-xs leading-relaxed text-teal-800 dark:bg-teal-950/30 dark:text-teal-300">
+                {output.chartCaption}
+              </p>
+            )}
+          </div>
+        )}
+
+        {!output.error && output.growthSeries && output.growthSeries.length > 0 && (
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60">
+            <div className="mb-4 text-sm font-semibold text-zinc-800 dark:text-zinc-200">Growth over time</div>
+            <ResultGrowthChart points={output.growthSeries.map((p) => ({ ...p, displayValue: displayValue(p.displayValue) }))} />
+            {output.chartCaption && (
+              <p className="mt-4 rounded-lg bg-teal-50 px-3 py-2.5 text-xs leading-relaxed text-teal-800 dark:bg-teal-950/30 dark:text-teal-300">
+                {output.chartCaption}
+              </p>
+            )}
+          </div>
+        )}
+
+        {!output.error && output.compare && output.compare.length > 0 && (
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60">
+            <div className="mb-4 text-sm font-semibold text-zinc-800 dark:text-zinc-200">How this compares</div>
+            <ResultCompare items={output.compare.map((c) => ({ ...c, displayValue: displayValue(c.displayValue) }))} />
+            {output.chartCaption && (
+              <p className="mt-4 rounded-lg bg-teal-50 px-3 py-2.5 text-xs leading-relaxed text-teal-800 dark:bg-teal-950/30 dark:text-teal-300">
+                {output.chartCaption}
+              </p>
+            )}
+          </div>
+        )}
+
+        {!output.error && output.table && output.table.rows.length > 0 && (
+          <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60">
+            <div className="mb-4 text-sm font-semibold text-zinc-800 dark:text-zinc-200">Breakdown table</div>
+            <ResultTable headers={output.table.headers} rows={output.table.rows.map((row) => row.map((cell) => displayValue(cell)))} />
+            {output.chartCaption && (
+              <p className="mt-4 rounded-lg bg-teal-50 px-3 py-2.5 text-xs leading-relaxed text-teal-800 dark:bg-teal-950/30 dark:text-teal-300">
+                {output.chartCaption}
+              </p>
+            )}
+          </div>
+        )}
 
         {!output.error && (secondaryResults.length > 0 || (output.notes && output.notes.length > 0) || output.results.length > 0) && (
           <div className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60">
@@ -219,15 +326,44 @@ export default function CalculatorShell({ slug }: Props) {
         )}
 
         {(output.steps?.length || output.formula) && !output.error && (
-          <details className="rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60" open>
-            <summary className="cursor-pointer text-sm font-semibold text-zinc-800 dark:text-zinc-200">Show your work</summary>
+          <details className="group rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60" open>
+            <summary className="flex cursor-pointer list-none items-center justify-between text-sm font-semibold text-zinc-800 marker:content-none [&::-webkit-details-marker]:hidden dark:text-zinc-200">
+              <span className="flex items-center gap-2">
+                <span className="flex h-6 w-6 items-center justify-center rounded-md bg-teal-50 text-xs text-teal-600 dark:bg-teal-950/50 dark:text-teal-400">ƒ</span>
+                Show your work
+              </span>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                className="text-zinc-400 transition-transform duration-200 group-open:rotate-180"
+              >
+                <path d="m6 9 6 6 6-6" />
+              </svg>
+            </summary>
             {output.formula && (
-              <p className="mt-3 rounded-lg bg-zinc-50 px-3 py-2 font-mono text-xs text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">{output.formula}</p>
+              <div className="mt-4 flex items-center gap-2 rounded-lg bg-zinc-50 px-3 py-2.5 dark:bg-zinc-800">
+                <span className="shrink-0 font-mono text-xs font-semibold text-teal-500 dark:text-teal-400">ƒ(x) =</span>
+                <p className="overflow-x-auto font-mono text-xs text-zinc-700 dark:text-zinc-300">{output.formula}</p>
+              </div>
             )}
             {output.steps && (
-              <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm text-zinc-600 dark:text-zinc-400">
+              <ol className="mt-4 flex flex-col">
                 {output.steps.map((s, idx) => (
-                  <li key={idx}>{s}</li>
+                  <li key={idx} className="relative flex gap-3 pb-4 last:pb-0">
+                    {idx < output.steps!.length - 1 && (
+                      <span className="absolute top-6 left-[11px] w-px bg-teal-200 dark:bg-teal-900" style={{ height: "calc(100% - 8px)" }} aria-hidden="true" />
+                    )}
+                    <span className="relative z-10 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-teal-100 text-[11px] font-bold text-teal-700 dark:bg-teal-900/60 dark:text-teal-300">
+                      {idx + 1}
+                    </span>
+                    <span className="pt-0.5 text-sm text-zinc-600 dark:text-zinc-400">{s}</span>
+                  </li>
                 ))}
               </ol>
             )}
