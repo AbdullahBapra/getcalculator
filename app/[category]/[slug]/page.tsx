@@ -10,6 +10,7 @@ import DartsScorerWidget from "@/components/calculator/DartsScorerWidget";
 import RatesBanner from "@/components/calculator/RatesBanner";
 import PoweredBy from "@/components/calculator/PoweredBy";
 import PreferredSourceButton from "@/components/calculator/PreferredSourceButton";
+import CalculatorContentSection from "@/components/calculator/CalculatorContentSection";
 
 export function generateStaticParams() {
   return ALL_CALCULATORS.map((c) => ({ category: c.category, slug: c.slug }));
@@ -87,6 +88,8 @@ export default async function CalculatorPage({ params }: { params: Promise<{ cat
           <CalculatorShell slug={def.slug} />
         )}
       </div>
+
+      <CalculatorContentSection content={def.content} title={def.title} />
 
       {related.length > 0 && (
         <div className="mt-12">

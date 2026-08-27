@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ALL_CALCULATORS, CATEGORIES, POPULAR_SLUGS, calculatorsByCategory, getCalculator, previewValue } from "@/lib/calculators/registry";
-import { UNIT_CATEGORIES, allUnitPairs } from "@/lib/units";
+import { allUnitPairs } from "@/lib/units";
 import SearchBox from "@/components/layout/SearchBox";
 import ScientificCalculatorKeypad from "@/components/calculator/ScientificCalculatorKeypad";
 import CalculatorCard from "@/components/calculator/CalculatorCard";
@@ -8,6 +8,15 @@ import CalculatorCard from "@/components/calculator/CalculatorCard";
 export default function Home() {
   const popular = POPULAR_SLUGS.map((s) => getCalculator(s)).filter((c) => !!c);
   const converterPageCount = allUnitPairs().length;
+
+  // Same "show the breakdown" idea the calculators themselves are built around,
+  // pointed at the site's own catalog — browsing categories becomes one more chart
+  // instead of five identical link tiles.
+  const catCounts = [
+    ...CATEGORIES.map((c) => ({ key: c.key, href: `/${c.key}`, title: c.title, count: calculatorsByCategory(c.key).length })),
+    { key: "convert", href: "/convert", title: "Unit Converters", count: converterPageCount },
+  ];
+  const catTotal = catCounts.reduce((sum, c) => sum + c.count, 0);
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-14">
@@ -111,49 +120,73 @@ export default function Home() {
 
       <section className="mt-16">
         <h2 className="text-lg font-semibold text-zinc-800 dark:text-zinc-200">Browse by category</h2>
-        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {CATEGORIES.map((cat) => (
-            <Link
-              key={cat.key}
-              href={`/${cat.key}`}
-              className="group rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-teal-800"
-            >
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-50 text-sm font-bold text-teal-700 dark:bg-teal-950/50 dark:text-teal-400">
-                {cat.title[0]}
-              </span>
-              <h3 className="mt-3 font-semibold text-zinc-900 group-hover:text-teal-700 dark:text-zinc-100 dark:group-hover:text-teal-400">{cat.title}</h3>
-              <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">{calculatorsByCategory(cat.key).length} calculators</p>
-            </Link>
-          ))}
-          <Link
-            href="/convert"
-            className="group rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-teal-300 hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-teal-800"
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-50 text-sm font-bold text-teal-700 dark:bg-teal-950/50 dark:text-teal-400">
-              U
-            </span>
-            <h3 className="mt-3 font-semibold text-zinc-900 group-hover:text-teal-700 dark:text-zinc-100 dark:group-hover:text-teal-400">Unit Converters</h3>
-            <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-              {UNIT_CATEGORIES.length} categories · {converterPageCount} conversion pairs
-            </p>
-          </Link>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {catCounts.map((cat, i) => {
+            const pct = (cat.count / catTotal) * 100;
+            return (
+              <Link
+                key={cat.key}
+                href={cat.href}
+                className="group relative flex flex-col overflow-hidden rounded-2xl border border-zinc-200 bg-white p-5 shadow-sm transition hover:-translate-y-1 hover:border-teal-300 hover:shadow-lg dark:border-zinc-800 dark:bg-zinc-900/60 dark:hover:border-teal-800"
+              >
+                <span className="absolute inset-x-0 top-0 h-1 origin-left scale-x-50 bg-teal-500 transition-transform duration-300 group-hover:scale-x-100" />
+                <span className="font-[family-name:var(--font-logo)] text-4xl font-bold tabular-nums text-zinc-900 dark:text-zinc-50">{cat.count}</span>
+                <h3 className="mt-1 text-sm font-semibold text-zinc-700 group-hover:text-teal-700 dark:text-zinc-300 dark:group-hover:text-teal-400">
+                  {cat.title}
+                </h3>
+                {/* The category grid is its own tiny "breakdown chart" — each bar's
+                   length is that category's real share of the whole catalog, the same
+                   idea every calculator result on the site is built around. */}
+                <div className="mt-3 h-1.5 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                  <div
+                    className="cat-bar-grow h-full rounded-full bg-teal-500 dark:bg-teal-400"
+                    style={{ width: `${pct}%`, animationDelay: `${i * 70}ms` }}
+                  />
+                </div>
+                <span className="mt-1.5 text-[11px] text-zinc-400 dark:text-zinc-600">{pct.toFixed(0)}% of the catalog</span>
+              </Link>
+            );
+          })}
         </div>
       </section>
 
-      <section className="mt-16 rounded-2xl border border-teal-200 bg-teal-50 p-6 dark:border-teal-900 dark:bg-teal-950/30">
-        <h2 className="font-semibold text-teal-900 dark:text-teal-300">Built to fix what other calculator sites get wrong</h2>
-        <ul className="mt-3 grid gap-2 text-sm text-teal-800 sm:grid-cols-2 dark:text-teal-400">
-          <li>✓ Every result shows the formula and step-by-step work</li>
-          <li>✓ Shareable permalinks — send someone your exact inputs</li>
-          <li>✓ Compare saved scenarios side-by-side, free</li>
-          <li>✓ Dark mode, keyboard-accessible, no interstitial ads</li>
-          <li>✓ No email, no signup, ever — not even to save your history</li>
-          <li>✓ Embed any calculator on your own site, free and unlimited</li>
-        </ul>
-        <p className="mt-4 border-t border-teal-200 pt-4 text-sm text-teal-900 dark:border-teal-900 dark:text-teal-300">
-          <strong>Every calculation runs entirely in your browser.</strong> Nothing you type is ever sent to a server — not your income, not your
-          health numbers, not your mortgage details. No account means there&rsquo;s nothing about you to store in the first place.
-        </p>
+      <section className="relative mt-16 overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/60">
+        <div className="p-6">
+          <div className="flex items-center gap-2.5">
+            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-teal-50 font-mono text-sm font-bold text-teal-600 dark:bg-teal-950/50 dark:text-teal-400">
+              =
+            </span>
+            <h2 className="font-semibold text-zinc-900 dark:text-zinc-100">What every other calculator site gets wrong</h2>
+          </div>
+
+          <div className="mt-5 grid gap-x-6 gap-y-4 sm:grid-cols-2">
+            {[
+              ["Buries the answer under ads and a wall of text", "Every result shows the formula and the step-by-step work"],
+              ["One static page you can't hand to anyone", "A shareable permalink for every single calculation"],
+              ["No way to weigh two options against each other", "Compare saved scenarios side-by-side, free"],
+              ["A signup wall just to save one number", "No email, no signup, ever — not even for history"],
+              ["Sends what you type back to a server somewhere", "Runs entirely in your browser, always"],
+              ["Embedding it anywhere costs you", "Embed any calculator on your own site, free and unlimited"],
+            ].map(([bad, good], i) => (
+              <div key={i} className="flex flex-col gap-1.5 text-sm">
+                <span className="flex items-start gap-2 text-zinc-400 line-through decoration-zinc-300 dark:text-zinc-600 dark:decoration-zinc-700">
+                  <span className="mt-0.5 shrink-0 text-xs">✕</span>
+                  {bad}
+                </span>
+                <span className="flex items-start gap-2 font-medium text-zinc-800 dark:text-zinc-200">
+                  <span className="mt-0.5 shrink-0 text-teal-600 dark:text-teal-400">✓</span>
+                  {good}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="calc-card-tape relative bg-zinc-50 px-6 pt-4 pb-5 text-sm text-zinc-600 dark:bg-zinc-800/60 dark:text-zinc-400">
+          <strong className="text-zinc-800 dark:text-zinc-200">Every calculation runs entirely in your browser.</strong> Nothing you type is ever
+          sent to a server — not your income, not your health numbers, not your mortgage details. No account means there&rsquo;s nothing about you
+          to store in the first place.
+        </div>
       </section>
     </div>
   );

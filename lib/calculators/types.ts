@@ -130,4 +130,31 @@ export interface CalculatorDefinition {
   /** For calculators whose constants are law-driven and change on a schedule (tax bands, NI
    *  thresholds, statutory caps) — shown as a "rates current as of" banner on the page. */
   ratesAsOf?: string;
+  /** The on-page SEO content below the calculator itself — an explanation, the method
+   *  in plain English, and an FAQ written around real long-tail search questions
+   *  ("how do I...", "what is a good...", "is X accurate"), the same shape
+   *  calculator.net-style pages use and that ranks for informational queries the tool
+   *  itself never catches. Written per-calculator, not templated — duplicate
+   *  boilerplate across 200+ pages is a real SEO liability, not just an aesthetic one. */
+  content?: CalculatorContent;
+}
+
+export interface FaqItem {
+  /** A real search-style question — "how do I calculate…", "what is a good…", "is …
+   *  accurate" — not a generic marketing question. */
+  q: string;
+  a: string;
+}
+
+export interface CalculatorContent {
+  /** 2-4 paragraphs: what this actually calculates, who uses it and why, framed around
+   *  this calculator's specific subject — not a reusable template. */
+  intro: string[];
+  /** Plain-English walkthrough of the method/formula, expanding on formulaSummary —
+   *  omit if the primary result card's own "show your work" already covers it well
+   *  enough that repeating it here would just be filler. */
+  howItWorks?: string[];
+  /** Long-tail, question-phrased entries — the actual searches people type, tagged
+   *  toward "ready to calculate" intent since that's what this page is for. */
+  faq: FaqItem[];
 }

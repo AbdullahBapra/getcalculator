@@ -14,9 +14,13 @@ export default function Header() {
           GetCalculator
         </Link>
         <div className="flex items-center gap-2">
+          {/* Hidden below sm — nothing in the mobile nav (bottom tab bar or the
+             Categories sheet) leads here, so it's a deliberate desktop-only entry
+             point, not a duplicate; it just doesn't need to compete for header space
+             on a small screen. */}
           <Link
             href="/embed-calculators"
-            className="flex h-11 items-center rounded-full border border-teal-200 px-4 text-sm font-medium text-teal-700 transition hover:border-teal-300 hover:bg-teal-50 dark:border-teal-900 dark:text-teal-400 dark:hover:bg-teal-950/40"
+            className="hidden h-11 items-center rounded-full border border-teal-200 px-4 text-sm font-medium text-teal-700 transition hover:border-teal-300 hover:bg-teal-50 sm:flex dark:border-teal-900 dark:text-teal-400 dark:hover:bg-teal-950/40"
           >
             Embed
           </Link>

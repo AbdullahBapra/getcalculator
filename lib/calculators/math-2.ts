@@ -58,6 +58,40 @@ const math2: CalculatorDefinition[] = [
       }
     },
     relatedSlugs: ["basic-calculator", "exponent-calculator"],
+    content: {
+      intro: [
+        "A scientific calculator is the one you reach for the moment a problem involves anything past the four basic operations — sine and cosine, logarithms, powers, roots, factorials, or a value of π or e carried out to real precision. It's the calculator behind algebra II, trigonometry, physics, and most engineering coursework, and the one professionals keep a tab open for when a quick check beats digging out a formula sheet.",
+        "Most people land here mid-problem: a homework set that suddenly needs sin(37°), a lab report that needs ln of a ratio, a spreadsheet formula they want to sanity-check by hand first. Typing the whole expression — parentheses, functions and all — and getting one clean answer is faster than hunting for the right buttons on a physical unit, and this one never dies mid-exam because the battery ran out.",
+        "Because trig functions mean two different things depending on whether the angle is in degrees or radians, getting that toggle right is the single most common place a scientific calculator produces a 'wrong' answer that's actually just the other angle mode.",
+      ],
+      howItWorks: [
+        "Expressions are evaluated respecting standard order of operations — parentheses first, then exponents and functions, then multiplication and division, then addition and subtraction — exactly the way you'd work through it on paper, just applied automatically to the whole string at once.",
+        "The angle mode matters only for sin, cos and tan (and their inverses). A full circle is 360 degrees or 2π radians, so 30° and π/6 radians describe the identical angle — but typing sin(30) in radians mode evaluates sine of 30 radians, a completely different number from sin(30°). If a result looks wrong, the angle mode toggle is the first thing to check.",
+        "Logarithm functions come in two flavors: log() is base-10 (how many times you'd multiply 10 by itself to reach a number), while ln() is the natural log, base e ≈ 2.71828 — the base that shows up naturally in growth and decay math. sqrt() and ^ handle roots and powers, and constants like pi and e can be typed directly into any expression.",
+      ],
+      faq: [
+        {
+          q: "Should I use degrees or radians mode?",
+          a: "Use degrees for most everyday and geometry problems (angles measured 0-360°), and radians for calculus, physics, and anything involving angular velocity or the unit circle in terms of π. If a trig result looks way off, the angle mode is almost always the reason.",
+        },
+        {
+          q: "What's the difference between log and ln?",
+          a: "log() is logarithm base 10; ln() is the natural logarithm, base e. log(100) = 2 because 10² = 100, while ln(100) ≈ 4.605 because e^4.605 ≈ 100 — they answer the same kind of question with a different base.",
+        },
+        {
+          q: "How do I calculate a square root or a power on a scientific calculator?",
+          a: "Use sqrt() for a square root — sqrt(16) returns 4 — and ^ for any power, so 2^10 returns 1024. Both can be nested inside a larger expression along with parentheses.",
+        },
+        {
+          q: "How is a scientific calculator different from a basic calculator?",
+          a: "A basic calculator only adds, subtracts, multiplies and divides. A scientific calculator adds trigonometry, logarithms, exponents, roots, factorials and constants like π and e — the functions you need once math moves past arithmetic into algebra, trig, or calculus.",
+        },
+        {
+          q: "Why does my answer not match what my phone's calculator shows?",
+          a: "The two most common culprits are angle mode (degrees vs. radians) and order of operations — especially implied multiplication next to parentheses, which some calculators handle differently. Re-typing the expression with explicit parentheses around each piece usually resolves the mismatch.",
+        },
+      ],
+    },
   },
   {
     slug: "basic-calculator",
@@ -88,6 +122,31 @@ const math2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["scientific-calculator"],
+    content: {
+      intro: [
+        "A basic calculator handles the four operations that cover most of everyday math: addition, subtraction, multiplication and division. No trig, no logs, no memory keys — just two numbers, one operation, one answer, which is exactly what most quick calculations actually need.",
+        "It's the calculator people reach for splitting a bill, checking a receipt total, doubling a recipe, or working out a quick homework problem that doesn't call for anything scientific. Because there's only one operation happening at a time, there's no order-of-operations ambiguity to worry about — pick A, pick the operation, pick B, and the answer is unambiguous.",
+        "If your problem involves more than one operation chained together, parentheses, or functions like square roots and exponents, the scientific calculator on this site handles that same arithmetic plus everything past it.",
+      ],
+      faq: [
+        {
+          q: "What happens if I divide by zero?",
+          a: "Division by zero is mathematically undefined, so this calculator flags it as an error rather than returning a number — there's no finite value that correctly answers 'how many times does zero go into this.'",
+        },
+        {
+          q: "Can I use negative numbers?",
+          a: "Yes — enter a negative value directly (e.g. -8) in either the A or B field and it's handled the same way any positive number would be, following standard sign rules for addition, subtraction, multiplication and division.",
+        },
+        {
+          q: "What's the difference between this and the scientific calculator?",
+          a: "This one performs a single operation between two numbers. The scientific calculator evaluates a full expression — parentheses, multiple operations, exponents, roots, trig and logarithms all at once.",
+        },
+        {
+          q: "Does this calculator round the answer?",
+          a: "Results are shown to a high level of precision (up to 8 decimal places when the division isn't exact), so you're seeing the real computed value rather than a rounded approximation.",
+        },
+      ],
+    },
   },
   {
     slug: "simple-calculator",
@@ -119,6 +178,35 @@ const math2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["scientific-calculator", "basic-calculator"],
+    content: {
+      intro: [
+        "This is a real on-screen calculator you click or tap through, built for the moments a physical calculator would normally handle: totaling a grocery cart in your head-check, working out a tip, running the arithmetic behind a budget, or just wanting satisfying buttons instead of typing numbers into a text field. It behaves like the calculator that's sat on a desk or in a kitchen drawer for decades, just accessible from any browser.",
+        "The memory keys (M+, M−, MR, MC) are the feature a plain typed-in calculator can't replicate easily — they let you park a running subtotal while you compute something else, then bring it back later without writing it down. That's genuinely useful for anything with several intermediate totals: a shopping list, a set of measurements, a multi-step conversion.",
+        "It also responds to your physical keyboard — number keys, the four operators, Enter for equals — so once you're used to it, it's just as fast as typing into any calculator app, with the buttons there for anyone who'd rather click.",
+      ],
+      howItWorks: [
+        "Each number key appends a digit to the number currently being entered, and each operator key locks in the number so far and waits for the next one — press equals and it performs the pending operation and shows the result.",
+        "The memory keys work independently of whatever's on the display: M+ adds the current display value into a separate memory slot, M− subtracts it from that slot, MR recalls whatever's stored there back onto the display, and MC clears the memory slot back to zero. Nothing else on the calculator touches that stored value until you tell it to.",
+      ],
+      faq: [
+        {
+          q: "What does the M+ button do?",
+          a: "M+ adds whatever's currently on the display into the calculator's memory slot, which is separate from the number you're actively working with — useful for building up a running total across several separate calculations.",
+        },
+        {
+          q: "How is MR different from MC?",
+          a: "MR (memory recall) brings the stored memory value back onto the display without changing it; MC (memory clear) resets the stored memory value to zero. Use MR to reuse a saved total, MC when you're done with it.",
+        },
+        {
+          q: "Can I use my keyboard instead of clicking?",
+          a: "Yes — number keys, +, −, ×  (or *), ÷ (or /), and Enter (for equals) all work directly, so you can operate the whole calculator without touching the mouse.",
+        },
+        {
+          q: "Why does the calculator show an error on division?",
+          a: "Dividing by zero has no defined answer, so the calculator shows an error instead of a number rather than silently returning something misleading.",
+        },
+      ],
+    },
   },
   {
     slug: "number-sequence-calculator",
@@ -159,6 +247,35 @@ const math2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["statistics-calculator"],
+    content: {
+      intro: [
+        "A number sequence is just a list of values that follows a fixed rule from one term to the next. The two most common patterns — arithmetic, where you add the same amount each time, and geometric, where you multiply by the same factor each time — cover most of what shows up in algebra classes and in real patterns: a savings account earning a flat monthly deposit, a population doubling on a fixed schedule, a ball bouncing to a fraction of its previous height on each bounce.",
+        "Students hit this mostly in algebra and precalculus, working out a specific term (\"what's the 20th term?\") or the sum of a run of terms without having to add or multiply them out one at a time by hand. Outside the classroom, the same math describes anything that grows or shrinks by a constant step or a constant ratio — loan balances, investment compounding, radioactive decay, and depreciation schedules are all sequences in disguise.",
+      ],
+      howItWorks: [
+        "In an arithmetic sequence, each term is the previous term plus a fixed common difference d: aₙ = a₁ + (n−1)d. The sequence grows (or shrinks) by the same flat amount every step, so plotted out it forms a straight line.",
+        "In a geometric sequence, each term is the previous term multiplied by a fixed common ratio r: aₙ = a₁ × r^(n−1). Because the growth compounds instead of adding flatly, the terms curve — sharply upward if r is greater than 1, or shrinking toward zero if r is a fraction between 0 and 1.",
+        "The sum of the first n terms has a closed-form shortcut in both cases, which is what lets this calculator total up a sequence of any length instantly instead of adding every term one by one.",
+      ],
+      faq: [
+        {
+          q: "What's the difference between an arithmetic and a geometric sequence?",
+          a: "Arithmetic sequences add a fixed amount to get the next term (2, 5, 8, 11…, adding 3 each time). Geometric sequences multiply by a fixed ratio instead (2, 6, 18, 54…, multiplying by 3 each time) — that's why geometric sequences grow so much faster.",
+        },
+        {
+          q: "How do I find the nth term of a sequence without listing every term?",
+          a: "Use the direct formula: aₙ = a₁ + (n−1)d for arithmetic, or aₙ = a₁ × r^(n−1) for geometric. Both let you jump straight to any term without computing everything before it.",
+        },
+        {
+          q: "What does a common ratio less than 1 do to a geometric sequence?",
+          a: "It shrinks the terms toward zero instead of growing them — each term is smaller than the last, which is exactly the pattern behind radioactive decay and value depreciation.",
+        },
+        {
+          q: "Can the common difference or ratio be negative?",
+          a: "Yes. A negative common difference makes an arithmetic sequence count downward, and a negative common ratio makes a geometric sequence alternate in sign from term to term while still growing or shrinking in magnitude.",
+        },
+      ],
+    },
   },
   {
     slug: "half-life-calculator",
@@ -201,6 +318,35 @@ const math2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["exponent-calculator"],
+    content: {
+      intro: [
+        "Half-life describes how long it takes for a quantity to fall to exactly half of its current value, and it shows up any time something decays at a rate proportional to how much of it is left — radioactive isotopes, the concentration of a drug in the bloodstream, or a hot cup of coffee cooling toward room temperature all follow the same underlying pattern.",
+        "It's a staple of chemistry and physics courses, where students compute how much of a radioactive sample remains after a given time, and it comes up just as often outside a classroom — carbon-14 dating an artifact, a pharmacist working out how long a medication stays active in the body, or an engineer estimating how long stored nuclear material stays hazardous.",
+        "The key thing that makes half-life math different from steady, linear decline is that the decay never actually stops — every half-life removes half of whatever's left, so the amount keeps shrinking but never technically reaches zero.",
+      ],
+      howItWorks: [
+        "The formula is N(t) = N₀ × 0.5^(t / half-life), where N₀ is the starting amount, t is the elapsed time, and half-life is how long it takes to lose half the current amount. Every time t advances by one full half-life, the exponent increases by exactly 1, and the remaining amount gets cut in half again.",
+        "This is exponential decay, not linear decay — the substance doesn't lose a fixed amount per unit time, it loses a fixed fraction. That's why the amount drops fast at first (in absolute terms) and then tapers off, approaching but never quite touching zero.",
+      ],
+      faq: [
+        {
+          q: "What does half-life actually mean?",
+          a: "It's the time it takes for a decaying quantity to drop to exactly half its current amount — and that same waiting period cuts whatever's left in half again, no matter how much or how little remains at that point.",
+        },
+        {
+          q: "Does the substance ever fully disappear?",
+          a: "Mathematically, no — each half-life only removes half of what's currently there, so the remaining amount keeps shrinking toward zero without ever technically reaching it, though after enough half-lives it becomes negligible.",
+        },
+        {
+          q: "How is half-life used in carbon dating?",
+          a: "Carbon-14 has a known half-life of about 5,730 years. By measuring how much carbon-14 remains in an organic sample relative to the original amount, scientists can work backward through this same formula to estimate the sample's age.",
+        },
+        {
+          q: "Can this calculator be used for drug elimination from the body?",
+          a: "Yes — many medications are eliminated from the bloodstream at a rate that closely follows the same exponential half-life pattern, so entering a drug's known half-life and elapsed time gives a reasonable estimate of how much remains active.",
+        },
+      ],
+    },
   },
   {
     slug: "slope-calculator",
@@ -249,6 +395,36 @@ const math2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["distance-calculator"],
+    content: {
+      intro: [
+        "Slope measures how steep a line is — how much it rises or falls for every unit it moves sideways — and it's one of the first genuinely useful pieces of algebra, because it describes rate of change in general, not just lines on graph paper. Speed is the slope of a distance-vs-time line, a ramp's steepness is a slope, and a hillside's grade is a slope expressed as a percentage.",
+        "Students meet this calculating slope between two points for algebra homework, but it comes up constantly outside class too: a contractor checking that a wheelchair ramp meets accessibility requirements, a roofer calculating pitch, or anyone checking whether two lines are parallel (same slope) or perpendicular (slopes that are negative reciprocals of each other).",
+        "Given any two points on a line, the slope is fully determined — there's exactly one straight line through two distinct points, and exactly one slope that describes it.",
+      ],
+      howItWorks: [
+        "Slope is 'rise over run': m = (y₂ − y₁) / (x₂ − x₁). The numerator (rise) is how far the line moves vertically between the two points; the denominator (run) is how far it moves horizontally. Dividing one by the other gives a single number that describes the line's steepness and direction.",
+        "The sign tells you the direction: positive slope means the line climbs left to right, negative means it falls, zero means it's perfectly flat (horizontal), and an undefined slope (division by zero, when both points share the same x-value) means the line is perfectly vertical.",
+        "Once you have the slope, the full line equation follows from a single point: y = mx + b, where b (the y-intercept) is found by plugging one of the known points back into that equation and solving for b.",
+      ],
+      faq: [
+        {
+          q: "How do you find the slope between two points?",
+          a: "Subtract the y-values to get the rise, subtract the x-values (in the same order) to get the run, then divide: m = (y₂ − y₁) / (x₂ − x₁).",
+        },
+        {
+          q: "What does a negative slope mean?",
+          a: "The line falls as it moves left to right — for every step you take to the right along the x-axis, the y-value decreases rather than increases.",
+        },
+        {
+          q: "What's the difference between a zero slope and an undefined slope?",
+          a: "A zero slope is a perfectly horizontal line (no rise at all, just run). An undefined slope is a perfectly vertical line — there's no run (Δx = 0), and dividing by zero has no defined value.",
+        },
+        {
+          q: "How do I know if two lines are parallel or perpendicular from their slopes?",
+          a: "Parallel lines share the exact same slope. Perpendicular lines have slopes that are negative reciprocals of each other — for example, a slope of 2 and a slope of −1/2 meet at a right angle.",
+        },
+      ],
+    },
   },
   {
     slug: "sample-size-calculator",
@@ -300,6 +476,36 @@ const math2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["confidence-interval-calculator"],
+    content: {
+      intro: [
+        "Sample size math answers a very practical question before you run a survey or study: how many people do you actually need to talk to for the results to be trustworthy? Ask too few and your margin of error balloons; ask more than you need and you've wasted time and budget collecting responses that barely tighten the result any further.",
+        "This is the calculator behind market research surveys, academic studies, political polling, and product feedback forms — anywhere someone needs to say, credibly, 'we surveyed enough people that this result reflects the broader population within a stated margin of error.'",
+        "The required sample size depends on how tight you want your margin of error, how confident you want to be in the result, and — perhaps less intuitively — on the expected proportion itself, since a rough 50/50 split needs a larger sample than a lopsided one to pin down accurately.",
+      ],
+      howItWorks: [
+        "The core formula is n = z²×p(1−p) / e², where z is the z-score for your chosen confidence level, p is the estimated proportion (as a decimal), and e is your target margin of error (also as a decimal). Higher confidence and tighter margins both push z or shrink e, which pushes the required sample size up.",
+        "p(1−p) is largest when p = 0.5, which is why 50% is the most conservative (largest sample-requiring) estimate to use when you genuinely don't know what proportion to expect — it guarantees you won't undersize the survey.",
+        "When you're sampling from a small, known population rather than an effectively infinite one, a finite population correction shrinks the required sample size, since surveying a larger share of a small group naturally yields more certainty per respondent.",
+      ],
+      faq: [
+        {
+          q: "What sample size do I need for a survey?",
+          a: "It depends on your target margin of error and confidence level — a common starting point is a 95% confidence level with a 5% margin of error, which typically calls for a sample in the low hundreds regardless of how large the overall population is, unless that population itself is small.",
+        },
+        {
+          q: "Why does the population size barely matter for large populations?",
+          a: "Once a population is large relative to the sample, sampling a bit more or less of it changes the required sample size only marginally — the required n converges toward the same value whether the population is 100,000 or 100,000,000. It only shrinks noticeably when the population itself is small.",
+        },
+        {
+          q: "What confidence level and margin of error should I use?",
+          a: "95% confidence with a 5% margin of error is the most common default across market research and academic surveys, though tighter margins (like 3%) or higher confidence (99%) are used when the decision riding on the result matters more.",
+        },
+        {
+          q: "Why does using 50% for the expected proportion give the largest sample size?",
+          a: "The math term p(1−p) peaks at p = 0.5, so a roughly even split in your population is the hardest case to pin down precisely — using 50% when you're unsure guarantees your sample size is large enough no matter what the true proportion turns out to be.",
+        },
+      ],
+    },
   },
   {
     slug: "confidence-interval-calculator",
@@ -342,6 +548,36 @@ const math2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["sample-size-calculator", "z-score-calculator"],
+    content: {
+      intro: [
+        "A confidence interval takes a single sample mean and turns it into a range that's likely to contain the true population mean — the number you'd get if you could somehow measure every single member of the population instead of just a sample. Almost no real-world measurement is exact, so this range is often the more honest, useful answer than a single point estimate on its own.",
+        "It's a core tool in research, quality control, and any A/B test or survey analysis — anywhere someone has measured a sample (average test scores, average product weight off an assembly line, average response to a survey question) and needs to state how much uncertainty surrounds that average.",
+        "The width of the interval is a direct trade-off with confidence: a wider interval lets you be more confident the true value falls inside it, while a narrower interval is more precise but riskier — it's more likely to miss the true value entirely.",
+      ],
+      howItWorks: [
+        "The interval is built as mean ± z × (σ / √n): take the sample mean, then add and subtract a margin built from the z-score for your confidence level, the sample's standard deviation, and the square root of the sample size.",
+        "Standard deviation measures how spread out the individual data points are — more spread means more uncertainty about where the true mean sits, and the formula reflects that directly. Sample size works in the opposite direction: as √n grows, the margin shrinks, because a larger sample pins the average down more precisely.",
+        "A 95% confidence level means that if you repeated this same sampling process many times, about 95% of the resulting intervals would contain the true population mean — it's a statement about the reliability of the method, not a 95% probability attached to this one specific interval.",
+      ],
+      faq: [
+        {
+          q: "What does a 95% confidence interval actually mean?",
+          a: "It means that if the same sampling process were repeated many times, about 95% of the resulting intervals would contain the true population mean. It doesn't mean there's a 95% chance the true mean falls in this particular interval — the true mean is fixed, only the interval varies.",
+        },
+        {
+          q: "Why does a larger sample size narrow the confidence interval?",
+          a: "The margin of error depends on the sample size through √n in the denominator — a bigger sample gives a more precise estimate of the true mean, which shrinks the range needed to be confident it's captured.",
+        },
+        {
+          q: "Should I use 90%, 95%, or 99% confidence?",
+          a: "95% is the standard default across most research and business contexts. Use 99% when the cost of being wrong is high and you want more certainty (at the cost of a wider interval); 90% when a rougher estimate is acceptable and you'd rather have a tighter range.",
+        },
+        {
+          q: "What's the difference between this and the sample size calculator?",
+          a: "This calculator starts from a sample you've already collected and tells you the confidence interval around its mean. The sample size calculator works in the opposite direction — it tells you how large a sample you'd need to collect to hit a target margin of error before you start.",
+        },
+      ],
+    },
   },
   {
     slug: "distance-calculator",
@@ -383,6 +619,36 @@ const math2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["slope-calculator"],
+    content: {
+      intro: [
+        "This finds the straight-line ('as the crow flies') distance between two points, whether they're plotted on a flat 2D graph or floating in 3D space. It's one of the most direct applications of the Pythagorean theorem you'll meet in geometry class — instead of one right triangle, it's really just stacking the theorem across however many dimensions you're working in.",
+        "Students hit it in coordinate geometry proving shapes or finding perimeters from vertex coordinates, while outside the classroom the identical math underlies GPS distance calculations, game and graphics programming (how far apart are two objects in a scene), and physics problems involving displacement between two positions.",
+        "Adding a third coordinate (z) extends the exact same idea into 3D without changing the underlying logic — it's the same formula with one more squared difference added under the square root.",
+      ],
+      howItWorks: [
+        "The formula is d = √[(x₂−x₁)² + (y₂−y₁)² + (z₂−z₁)²]. Each squared difference measures how far apart the two points are along one axis; adding them together and taking the square root combines those separate axis-by-axis differences into one overall straight-line distance — exactly the Pythagorean theorem, generalized past two dimensions.",
+        "Squaring each difference before adding is what makes the direction of the difference (positive or negative) not matter — a negative Δx contributes the same squared value as a positive one of the same size, since distance itself is never negative.",
+        "In 2D, leaving z at zero for both points collapses this back to the familiar two-dimensional distance formula, since the z-term simply becomes zero and drops out of the sum.",
+      ],
+      faq: [
+        {
+          q: "How do you find the distance between two points?",
+          a: "Subtract the x-coordinates and square the result, do the same for y (and z, if working in 3D), add all the squared differences together, and take the square root of that sum.",
+        },
+        {
+          q: "Does this work for 3D coordinates too?",
+          a: "Yes — leave the z-coordinates at 0 for a purely 2D distance, or fill them in for a genuine 3D straight-line distance; the same formula covers both cases.",
+        },
+        {
+          q: "What's the difference between this and the slope calculator?",
+          a: "Distance tells you how far apart two points are in a straight line. Slope tells you the steepness and direction of the line connecting them — you can have two points that are very far apart with a shallow slope, or close together with a steep one; the two measurements answer different questions.",
+        },
+        {
+          q: "Why is the result always positive?",
+          a: "Distance is a magnitude, not a direction — squaring each coordinate difference eliminates any negative signs before the square root is taken, so the result can never come out negative.",
+        },
+      ],
+    },
   },
   {
     slug: "surface-area-calculator",
@@ -470,6 +736,35 @@ const math2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["volume-calculator", "area-calculator"],
+    content: {
+      intro: [
+        "Surface area is the total area covering the outside of a 3D shape — every face, added together. It's the number that actually matters when you're covering, wrapping, painting, or plating something, as opposed to volume, which tells you how much a shape holds on the inside.",
+        "It's a standard geometry-class topic across cubes, boxes, spheres, cylinders and cones, but it's also genuinely practical: figuring out how much wrapping paper a box needs, how much paint a cylindrical tank's exterior requires, how much material goes into a can or a cone-shaped container, or how much fabric covers a spherical shape.",
+        "Each shape has its own formula because each is built from a different combination of flat and curved faces, but they all reduce to the same idea — add up the area of every face that makes up the shape's outer surface.",
+      ],
+      howItWorks: [
+        "A cube's surface area is 6 × side², since all six faces are identical squares. A rectangular box generalizes that into three pairs of matching rectangular faces: SA = 2(lw + lh + wh), where each term covers one pair (top/bottom, front/back, left/right).",
+        "A sphere's surface area, 4πr², comes from calculus but is simple to apply — it depends only on the radius. A cylinder splits into two flat circular ends (2πr²) plus one curved rectangular side wrapped around (2πrh), combining to SA = 2πr(r + h). A cone splits similarly into a flat circular base (πr²) plus a curved lateral surface (πr × slant height, where the slant height is √(r² + h²) by the Pythagorean theorem).",
+      ],
+      faq: [
+        {
+          q: "What's the difference between surface area and volume?",
+          a: "Surface area measures the total area of a shape's outer faces — think of it as how much material would wrap the outside. Volume measures how much space the shape encloses on the inside. They're measured in different units too: surface area in square units, volume in cubic units.",
+        },
+        {
+          q: "Why does a cone need the slant height instead of the regular height?",
+          a: "The cone's curved side is slanted, not vertical, so its area depends on the distance along that slanted surface (the slant height) rather than the straight vertical height — the two are only equal for a perfectly flat cone, which isn't really a cone at all.",
+        },
+        {
+          q: "How do you find the surface area of a cylinder?",
+          a: "Add the area of the two circular ends (2πr²) to the area of the curved side unrolled into a rectangle (2πrh, where h is the height): SA = 2πr(r + h).",
+        },
+        {
+          q: "Is surface area always in square units?",
+          a: "Yes — since it's an area measurement, the result is always in square units (square inches, square meters, etc.), regardless of which 3D shape you're measuring.",
+        },
+      ],
+    },
   },
   {
     slug: "right-triangle-calculator",
@@ -525,6 +820,36 @@ const math2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["pythagorean-theorem-calculator", "triangle-calculator"],
+    content: {
+      intro: [
+        "A right triangle has one 90° angle, which makes it uniquely solvable — knowing just two pieces of information about it (two sides, or one side and one angle) is enough to work out everything else: the remaining side, both remaining angles, and the area. That predictability is exactly why right triangles anchor so much of trigonometry.",
+        "Geometry and trig students use this to solve for whatever's missing given two known values, but the same triangle shows up constantly in construction and design: framing a roof, checking that a ladder is at a safe angle against a wall, calculating a wheelchair ramp's rise and run, or laying out a diagonal brace.",
+        "Because a right triangle's shape is fully locked in by any two known measurements, this calculator adapts to whichever two you actually have — two legs, a leg and the hypotenuse, or a leg and an angle — rather than forcing one fixed input layout.",
+      ],
+      howItWorks: [
+        "When both legs are known, the Pythagorean theorem finds the hypotenuse directly: a² + b² = c². When the hypotenuse and one leg are known, the same equation is rearranged to solve for the missing leg instead.",
+        "When one leg and one angle are known, trigonometric ratios take over: sine, cosine and tangent relate an angle to a ratio of two of the triangle's sides. Once one side and one non-right angle are known, those ratios pin down every other side.",
+        "In every case, once all three sides are known, the two non-right angles follow from inverse trig functions, and since a triangle's angles always sum to 180°, the two acute angles in a right triangle always add up to exactly 90°.",
+      ],
+      faq: [
+        {
+          q: "How do you find the hypotenuse of a right triangle?",
+          a: "If you know both legs, use the Pythagorean theorem: c = √(a² + b²). If you know one leg and one angle instead, divide that leg by the sine or cosine of the angle, depending on which side it sits opposite or adjacent to.",
+        },
+        {
+          q: "What is SOHCAHTOA?",
+          a: "It's a memory aid for the three basic trig ratios in a right triangle: Sine = Opposite/Hypotenuse, Cosine = Adjacent/Hypotenuse, Tangent = Opposite/Adjacent — the relationships this calculator uses whenever an angle is one of the known values.",
+        },
+        {
+          q: "Do the two non-right angles always add up to 90°?",
+          a: "Yes — every triangle's angles sum to 180°, and one of those is already the fixed 90° right angle, so the other two must always add up to the remaining 90° between them.",
+        },
+        {
+          q: "Why is the hypotenuse always the longest side?",
+          a: "It's the side directly opposite the right angle, and the right angle is the largest angle in the triangle — the longest side in any triangle is always opposite the largest angle.",
+        },
+      ],
+    },
   },
   {
     slug: "factor-calculator",
@@ -560,6 +885,35 @@ const math2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["prime-factorization-calculator", "gcf-lcm-calculator"],
+    content: {
+      intro: [
+        "A factor of a number is any whole number that divides into it evenly, with nothing left over. Every whole number greater than 1 has at least two factors — 1 and itself — and most have several more tucked in between, arranged neatly in pairs that multiply back to the original number.",
+        "This comes up constantly in school math: simplifying fractions to lowest terms, factoring expressions in algebra, or splitting a group of items into equal-sized batches. It's also just a handy everyday tool — figuring out every way to arrange a fixed number of items into equal rows and columns, for example, is really a factor question in disguise.",
+        "Larger numbers tend to have more factors, but not predictably — a number like 60 has twelve factors thanks to its rich mix of small prime building blocks, while a number like 61 (prime) has only two: 1 and 61 itself.",
+      ],
+      howItWorks: [
+        "Finding every factor of a number means testing which whole numbers divide into it with no remainder. Checking divisors only up to the square root of the number is enough — every factor above that square root is guaranteed to be paired with one already found below it, since factors always come in pairs that multiply to the original number.",
+        "That's why factors are naturally listed as pairs: for 60, the pair (4, 15) multiplies back to 60, and so does (5, 12), (6, 10), (1, 60), (2, 30), and (3, 20) — six pairs, twelve factors total.",
+      ],
+      faq: [
+        {
+          q: "What is a factor of a number?",
+          a: "A factor is any whole number that divides evenly into another number with no remainder. For example, 6 is a factor of 24 because 24 ÷ 6 = 4 exactly, with nothing left over.",
+        },
+        {
+          q: "What's the difference between factors and multiples?",
+          a: "Factors divide into a number (the factors of 12 are smaller than or equal to 12: 1, 2, 3, 4, 6, 12). Multiples are what you get multiplying a number up (the multiples of 12 go the other direction: 12, 24, 36, 48…) — factors and multiples are essentially inverses of each other.",
+        },
+        {
+          q: "How many factors does a number have?",
+          a: "It depends entirely on the number's prime building blocks — a number with many small prime factors tends to have far more total factors than a prime number of similar size, which only ever has exactly two: 1 and itself.",
+        },
+        {
+          q: "What's the difference between this and the prime factorization calculator?",
+          a: "This lists every whole-number divisor of a number. Prime factorization breaks the number down into only its prime building blocks (with exponents) — a more compact, unique representation that this calculator's full factor list is actually built from.",
+        },
+      ],
+    },
   },
   {
     slug: "prime-factorization-calculator",
@@ -601,6 +955,36 @@ const math2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["factor-calculator", "gcf-lcm-calculator"],
+    content: {
+      intro: [
+        "Prime factorization breaks a number down into the unique set of prime numbers that multiply together to build it. Every whole number greater than 1 has exactly one such breakdown — that uniqueness (the fundamental theorem of arithmetic) is what makes prime factorization such a powerful tool rather than just an academic exercise.",
+        "It shows up in middle and high school math as a stepping stone to finding greatest common factors and least common multiples, simplifying radicals, and reducing fractions — and the same technique underlies parts of number theory and cryptography, where the difficulty of factoring very large numbers into their primes is what keeps certain encryption schemes secure.",
+        "Because the breakdown is unique, two numbers' prime factorizations can be compared directly to find exactly what they share and what they don't — which is precisely how GCF and LCM get computed under the hood.",
+      ],
+      howItWorks: [
+        "The standard method is repeated division: start with the smallest prime (2), divide it out of the number as many times as it goes in evenly, then move to the next prime (3, 5, 7…) and repeat, continuing until only 1 remains.",
+        "Each prime that was divided out, along with how many times it divided in (its exponent), becomes one term in the final factorization — written as n = p₁^e₁ × p₂^e₂ × ... For example, 360 breaks down to 2³ × 3² × 5, meaning 2×2×2×3×3×5 multiplies back out to exactly 360.",
+        "You only need to test prime divisors up to the square root of whatever's left at each step — if nothing up to that point divides evenly, whatever remains is itself prime and becomes the final factor.",
+      ],
+      faq: [
+        {
+          q: "What is prime factorization?",
+          a: "It's expressing a whole number as a product of prime numbers — numbers greater than 1 with no divisors other than 1 and themselves. For example, the prime factorization of 60 is 2² × 3 × 5.",
+        },
+        {
+          q: "Is 1 a prime number?",
+          a: "No. By definition, a prime number has exactly two distinct divisors (1 and itself); 1 only has one divisor (itself), so it's excluded and doesn't appear in any prime factorization.",
+        },
+        {
+          q: "How is prime factorization used to find GCF and LCM?",
+          a: "The GCF of two numbers is the product of the smallest power of each prime they share; the LCM is the product of the largest power of every prime appearing in either number. Comparing the two numbers' prime factorizations side by side makes both straightforward to read off.",
+        },
+        {
+          q: "What's the fastest way to find prime factorization by hand?",
+          a: "Repeatedly divide by the smallest prime that still divides in evenly — start with 2, then 3, 5, 7, and so on — writing down each prime you use until you're left with 1. It's slow for very large numbers but reliable for anything typically encountered in coursework.",
+        },
+      ],
+    },
   },
   {
     slug: "common-factor-calculator",
@@ -637,6 +1021,35 @@ const math2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["gcf-lcm-calculator", "factor-calculator"],
+    content: {
+      intro: [
+        "A common factor is any whole number that divides evenly into every number in a group, not just one of them. Two numbers might each have plenty of factors on their own, but only the ones appearing in both lists actually count as common — and the largest of those shared factors is the greatest common factor (GCF), the number most people are really after.",
+        "It's the tool behind simplifying a fraction to lowest terms (dividing numerator and denominator by their GCF), splitting items into the largest possible equal groups, or figuring out the biggest square tile size that fits evenly across a rectangular floor with no cutting — all classic 'what's the biggest number that divides evenly into all of these' problems.",
+        "Common factors get harder to spot by inspection as more numbers are added to the list, which is exactly where working through the math systematically instead of guessing pays off.",
+      ],
+      howItWorks: [
+        "This works by listing every factor of the first number, then narrowing that list down to only the factors that also divide evenly into every other number in the group — effectively an intersection of each number's individual factor set.",
+        "Whatever's left after that narrowing is the complete set of common factors, and the largest value remaining in that set is the greatest common factor (GCF) — the single number most simplification and grouping problems actually need.",
+      ],
+      faq: [
+        {
+          q: "What's the difference between a common factor and the GCF?",
+          a: "A common factor is any number that divides evenly into every number in the group — there are usually several. The GCF (greatest common factor) is specifically the largest one among them, and it's usually the one you actually need for simplifying or grouping.",
+        },
+        {
+          q: "How is this different from the factor calculator?",
+          a: "The factor calculator lists every factor of one single number. This one takes two or more numbers and finds only the factors they all share — a narrower, more targeted question that's actually what most real problems (like simplifying a fraction) are asking.",
+        },
+        {
+          q: "Why does the GCF matter for simplifying fractions?",
+          a: "Dividing both the numerator and denominator of a fraction by their GCF reduces it to lowest terms in one step — dividing by any smaller common factor would still leave it further simplifiable.",
+        },
+        {
+          q: "What if two numbers only share the factor 1?",
+          a: "That means the numbers are coprime (relatively prime) — they share no factors beyond 1, even if each individually has plenty of its own factors, so their GCF is 1 and no fraction built from them can be simplified any further.",
+        },
+      ],
+    },
   },
   {
     slug: "matrix-calculator",
@@ -737,6 +1150,36 @@ const math2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: [],
+    content: {
+      intro: [
+        "A matrix is just a rectangular grid of numbers, and once you can add, subtract, multiply and invert them, you have the basic toolkit behind a surprising amount of applied math — solving systems of linear equations, transforming coordinates in computer graphics and game engines, and representing the data behind machine learning models all lean on this same 2×2-and-larger matrix arithmetic.",
+        "Students meet 2×2 matrices in algebra II or a first linear algebra course, usually right around the point where matrix multiplication first breaks the intuition built from ordinary number multiplication — it isn't commutative, and 'dividing' by a matrix means multiplying by its inverse instead, if that inverse even exists.",
+        "This calculator handles the operations that actually come up at the 2×2 level: entrywise addition and subtraction, row-by-column multiplication, the determinant, and the inverse — the four building blocks that everything else in matrix algebra is stacked on top of.",
+      ],
+      howItWorks: [
+        "Addition and subtraction work entrywise — each cell of the result is just the sum or difference of the matching cells in A and B, nothing more involved than that.",
+        "Multiplication is different: each cell of the result comes from multiplying a full row of A by a full column of B, entry by entry, and adding those products together — which is why matrix multiplication order matters (A×B usually isn't the same as B×A), unlike multiplying ordinary numbers.",
+        "The determinant of a 2×2 matrix [[a,b],[c,d]] is ad − bc — a single number that reveals whether the matrix has an inverse at all. If it's zero, the matrix is 'singular' and has no inverse. Otherwise, the inverse is built by swapping the diagonal entries, negating the off-diagonal entries, and dividing everything by the determinant.",
+      ],
+      faq: [
+        {
+          q: "What does the determinant of a matrix tell you?",
+          a: "It's a single number that reveals whether a matrix can be inverted — a nonzero determinant means an inverse exists, while a determinant of exactly zero means the matrix is singular and has no inverse at all.",
+        },
+        {
+          q: "Why doesn't A × B equal B × A for matrices?",
+          a: "Matrix multiplication combines rows of the first matrix with columns of the second, and swapping which matrix comes first changes which rows pair with which columns — so unlike multiplying ordinary numbers, the order you multiply matrices in generally changes the result.",
+        },
+        {
+          q: "What happens if I try to invert a matrix with a determinant of zero?",
+          a: "It's mathematically impossible — a singular matrix (determinant zero) has no inverse, the matrix equivalent of trying to divide by zero.",
+        },
+        {
+          q: "What are matrices actually used for?",
+          a: "They're the standard way to represent and solve systems of linear equations, and they're the backbone of computer graphics transformations (rotating, scaling, moving objects), engineering simulations, and the underlying math of many machine learning models.",
+        },
+      ],
+    },
   },
   {
     slug: "big-number-calculator",
@@ -786,6 +1229,35 @@ const math2: CalculatorDefinition[] = [
       }
     },
     relatedSlugs: ["scientific-notation-calculator"],
+    content: {
+      intro: [
+        "Ordinary calculators — and JavaScript's built-in number type, for that matter — start losing exact precision once a whole number climbs past about 15 to 16 digits. This calculator sidesteps that limit entirely, performing addition, subtraction and multiplication on integers of essentially unlimited size with every digit exact, no rounding anywhere in the pipeline.",
+        "People end up here doing things ordinary arithmetic tools weren't built for: multiplying out a large factorial, exploring number theory or combinatorics problems, checking cryptography-adjacent math where numbers routinely run to dozens or hundreds of digits, or just satisfying curiosity about how large a number actually gets when you keep multiplying.",
+        "The tell that you need something like this rather than a standard calculator is precision silently degrading — a normal calculator will confidently show you a wrong answer once a result exceeds its safe integer range, without any warning that it's happened.",
+      ],
+      howItWorks: [
+        "This uses arbitrary-precision integer arithmetic (JavaScript's BigInt type), which represents whole numbers as an actual sequence of digits rather than packing them into a fixed-size floating-point slot. That means there's no upper limit on how large a number it can represent exactly, and no rounding error creeping in as numbers grow.",
+        "The tradeoff is that BigInt math only works cleanly with whole numbers — decimals aren't part of this system, which is exactly why the operations here are addition, subtraction and multiplication rather than division, since division of two large integers usually doesn't land on another whole number.",
+      ],
+      faq: [
+        {
+          q: "Why does a regular calculator give the wrong answer for very large numbers?",
+          a: "Standard calculators and most programming languages store numbers in a fixed amount of space (floating point), which starts losing exact precision once a whole number passes roughly 15 to 16 digits — past that point, the calculator is silently rounding, not computing exactly.",
+        },
+        {
+          q: "How large a number can this calculator handle?",
+          a: "There's no fixed limit built into the math itself — arbitrary-precision arithmetic can represent integers with hundreds of digits or more exactly, limited only by practical constraints like computation time for extremely large inputs.",
+        },
+        {
+          q: "Why is there no division option?",
+          a: "Dividing two large integers usually doesn't produce another whole number, and this calculator is built around exact integer arithmetic — introducing decimals or rounding would undercut the entire point of using arbitrary precision in the first place.",
+        },
+        {
+          q: "Can I enter negative numbers?",
+          a: "Yes — a leading minus sign is handled correctly for any operation, and the arithmetic remains exact regardless of sign.",
+        },
+      ],
+    },
   },
   {
     slug: "long-division-calculator",
@@ -832,6 +1304,36 @@ const math2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["fraction-calculator"],
+    content: {
+      intro: [
+        "Long division is the step-by-step process of dividing one number by another by hand, digit by digit, rather than in one leap. It's one of the foundational arithmetic skills taught in elementary school, and it's still the method that explains exactly why a quotient and remainder come out the way they do — something a calculator's flat decimal answer skips right over.",
+        "Students use this to check their own by-hand division work or to see each individual step laid out when a problem doesn't click from the final answer alone. It's also genuinely useful any time you need an exact quotient and remainder rather than a rounded decimal — splitting a quantity into equal whole groups with some left over, for instance.",
+        "Every step of the long division algorithm follows the same simple move repeated over and over: bring down the next digit, see how many times the divisor fits, write that digit down, subtract, and carry the leftover into the next step.",
+      ],
+      howItWorks: [
+        "At each step, the next digit of the dividend is 'brought down' and combined with whatever remainder carried over from the previous step. The divisor is checked against that combined number to see how many whole times it fits — that count becomes the next digit of the quotient.",
+        "The divisor is then multiplied by that quotient digit and subtracted from the working number, leaving a new remainder that carries into the next step. Repeating this once for every digit of the dividend eventually produces the full quotient, with whatever's left over at the very end being the final remainder.",
+        "The relationship dividend = divisor × quotient + remainder holds at every stage and is the easiest way to check the final answer: multiply the quotient back by the divisor, add the remainder, and it should return the original dividend exactly.",
+      ],
+      faq: [
+        {
+          q: "What's the difference between the quotient and the remainder?",
+          a: "The quotient is how many whole times the divisor fits into the dividend. The remainder is whatever's left over afterward that doesn't divide in evenly — for example, 17 ÷ 5 has a quotient of 3 and a remainder of 2, since 5×3=15 and 17−15=2.",
+        },
+        {
+          q: "How do you check a long division answer?",
+          a: "Multiply the quotient by the divisor, then add the remainder — the result should exactly equal the original dividend. If it doesn't, there's an arithmetic mistake somewhere in the steps.",
+        },
+        {
+          q: "How do I turn the remainder into a decimal instead?",
+          a: "Divide the remainder by the divisor and continue the division past the decimal point (adding zeros as needed) to get the decimal form — this calculator shows both the whole-number remainder and the full decimal result side by side.",
+        },
+        {
+          q: "Does this work with negative numbers?",
+          a: "Yes — enter a negative dividend or divisor and the sign is carried through correctly in both the quotient and the decimal result.",
+        },
+      ],
+    },
   },
   {
     slug: "p-value-calculator",
@@ -870,6 +1372,36 @@ const math2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["z-score-calculator", "confidence-interval-calculator"],
+    content: {
+      intro: [
+        "A p-value measures how surprising an observed result would be if there were actually no real effect going on — in statistics terms, if the 'null hypothesis' were true. A small p-value means the result would be unusual under that assumption, which is the standard evidence researchers lean on to say an effect is probably real rather than just noise.",
+        "This is the calculator behind hypothesis testing in research papers, A/B test analysis, and any statistics coursework that gets to the 'is this result actually significant' stage — taking a z-score (how many standard deviations a result sits from what you'd expect by chance) and converting it into the probability researchers actually report.",
+        "The distinction between one-tailed and two-tailed matters here: a one-tailed p-value only asks about surprise in one direction (result higher than expected, say), while a two-tailed p-value accounts for surprise in either direction — and two-tailed is the more common, more conservative default in most published research.",
+      ],
+      howItWorks: [
+        "This works from the standard normal distribution: the one-tailed p-value is 1 minus the cumulative probability up to |z|, which is the probability of seeing a result at least that extreme in one specific direction purely by chance.",
+        "The two-tailed p-value simply doubles that figure, since it accounts for an extreme result showing up in either direction — above or below the expected value — rather than just the one direction the one-tailed version checks.",
+        "A larger z-score (further from zero) pushes the p-value down, since it represents a result that's further out in the distribution's tail and therefore less likely to happen just by chance if there were no real effect at all.",
+      ],
+      faq: [
+        {
+          q: "What counts as a statistically significant p-value?",
+          a: "The most common threshold is 0.05 (5%) — a p-value below that is conventionally called statistically significant. Some fields use stricter thresholds like 0.01, particularly when false positives carry a higher cost.",
+        },
+        {
+          q: "Should I use a one-tailed or two-tailed p-value?",
+          a: "Use two-tailed by default — it's the more conservative, more widely accepted choice and covers surprise in either direction. One-tailed is only appropriate when you have a specific, pre-stated reason to only care about one direction of effect before you look at the data.",
+        },
+        {
+          q: "Does a p-value tell you the probability the null hypothesis is true?",
+          a: "No — that's one of the most common misreadings of it. A p-value only measures how surprising the observed data would be if the null hypothesis were true, not the probability that the null hypothesis itself is true or false.",
+        },
+        {
+          q: "What's the relationship between a z-score and a p-value?",
+          a: "The z-score measures how many standard deviations a result is from what's expected by chance; the p-value converts that distance into a probability. A larger z-score (further from zero, in either direction) always produces a smaller, more significant p-value.",
+        },
+      ],
+    },
   },
 ];
 

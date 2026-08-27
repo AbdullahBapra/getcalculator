@@ -21,6 +21,17 @@
   --font-mono: var(--font-geist-mono);
 }
 
+html {
+  /* Belt-and-suspenders against page-level horizontal scroll on mobile — any element
+     that ever manages to render wider than the viewport (a future regression, a
+     third-party embed, a long unbroken string) gets clipped here instead of adding a
+     sideways scrollbar with dead space past the real content. Components that
+     legitimately need their OWN horizontal scroll (ResultTable, the random-number
+     result strip) already scope it with their own overflow-x-auto wrapper, which
+     this doesn't affect — it only stops the outer page from doing it too. */
+  overflow-x: hidden;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
@@ -105,6 +116,24 @@ body {
    the same "bars grow in" language as ResultGrowthChart's charts, just in miniature,
    so the brand mark itself previews what the product actually does. Pure CSS (no
    mount-gated JS state), so it always plays, even before hydration finishes. */
+/* The homepage's "Browse by category" bars — same grow-from-nothing language as the
+   logo and the result charts, just horizontal since this one's a proportion-of-total
+   bar rather than a magnitude. Width is already the real percentage (inline style);
+   this only animates the reveal via transform, not the actual layout width, so it
+   can't cause reflow/jank while it plays. */
+@keyframes cat-bar-grow {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.cat-bar-grow {
+  transform-origin: left;
+  animation: cat-bar-grow 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
 @keyframes logo-grow-in {
   from {
     transform: scaleY(0);

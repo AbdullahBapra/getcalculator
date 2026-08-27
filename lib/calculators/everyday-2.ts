@@ -118,6 +118,35 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["time-duration-calculator"],
+    content: {
+      intro: [
+        "This tool adds or subtracts two spans of time given in hours, minutes and seconds — the kind of arithmetic that gets surprisingly fiddly by hand once minutes roll past 60 or a subtraction goes negative. Type in two durations, pick plus or minus, and it carries the borrowing and carrying for you.",
+        "It gets used for anything measured in stretches of time rather than clock times: totaling up two recorded video clips before you trim them together, figuring out how much longer a recipe needs after part of it has already cooked, working out the gap between two lap times, or tallying hours across a couple of work sessions.",
+        "Everything runs in your browser — there's nothing to sign in for and nothing saved, so it's just as quick for a one-off kitchen timer question as it is for something you'd use daily.",
+      ],
+      howItWorks: [
+        "Both durations are first converted to a single number of seconds (hours × 3600 + minutes × 60 + seconds), which sidesteps the awkward base-60 carrying that trips up manual addition. The two totals are then added or subtracted as plain numbers.",
+        "The result is converted back into hours, minutes and seconds for display. If a subtraction produces a negative total, the calculator flags it and shows the magnitude of the difference with a minus sign rather than wrapping around a clock.",
+      ],
+      faq: [
+        {
+          q: "How do I add two times that total more than 24 hours?",
+          a: "Just enter them — this calculator works with durations, not clock times, so there's no 24-hour wraparound. Adding 20 hours and 10 hours correctly returns 30 hours rather than looping back to 6.",
+        },
+        {
+          q: "What does a negative result mean when subtracting?",
+          a: "It means the second duration was longer than the first, so the difference is shown as a negative value — for example subtracting 3h from 1h30m gives −1h 30m.",
+        },
+        {
+          q: "Can I use this for adding up work hours across a week?",
+          a: "You can add two durations at a time, so it works for combining a couple of shifts. For a full week of daily hours with overtime pay calculated automatically, the Time Card Calculator is the better fit.",
+        },
+        {
+          q: "Does this account for time zones or daylight saving?",
+          a: "No — this treats both entries as plain durations (like a stopwatch reading), not clock times tied to a specific zone or date, so there's nothing to adjust for.",
+        },
+      ],
+    },
   },
   {
     slug: "height-calculator",
@@ -148,6 +177,35 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["bmi-calculator"],
+    content: {
+      intro: [
+        "This calculator predicts a child's likely adult height using the mid-parental height method — averaging both parents' heights and shifting the result up or down depending on the child's sex. It's the same rough calculation pediatricians have used for decades as a starting reference point, not a precise forecast.",
+        "Parents typically reach for this out of simple curiosity — wondering whether a tall toddler is going to stay tall, or whether a shorter-than-average kid is tracking normally against the family's genetics. It's also a common talking point at pediatric checkups when growth charts come up.",
+        "The math is quick and happens entirely on your device, so there's no need to hand over anyone's health details just to satisfy curiosity about how tall your kid might end up.",
+      ],
+      howItWorks: [
+        "The method averages the mother's and father's heights, then adjusts for the statistical difference between adult male and female height: add 6.5 cm for a boy, subtract 6.5 cm for a girl. That shift approximates the roughly 13 cm average height gap between adult men and women, split evenly around the parental average.",
+        "This is a population-level estimate, not a growth-curve projection from the child's own measurements — it ignores the child's current growth trajectory, nutrition, health conditions, and the fact that height is influenced by more than just the two parents' genes. Actual adult height commonly falls within about ±8.5 cm of the mid-parental estimate, which is a wide enough band that it's best treated as a ballpark, not a prediction to bank on.",
+      ],
+      faq: [
+        {
+          q: "How accurate is the mid-parental height method?",
+          a: "It's a rough estimate — most children's adult height lands within about 8.5 cm of the calculated value, but genetics, nutrition and health during childhood can push someone outside that range in either direction.",
+        },
+        {
+          q: "Why does the formula add or subtract 6.5 cm based on sex?",
+          a: "That adjustment approximates the average height difference between adult men and women, so the son's estimate is shifted above the parental average and the daughter's estimate is shifted below it.",
+        },
+        {
+          q: "Is this the same method doctors use?",
+          a: "Pediatricians do use mid-parental height as one reference point, usually alongside the child's own growth chart percentile over time — the two together give a much better picture than either alone.",
+        },
+        {
+          q: "Does this work for a child who is much taller or shorter than their growth curve suggests?",
+          a: "The formula only uses parental heights, so it won't reflect a child's own growth trajectory. A pediatrician tracking the child's percentile over multiple visits is a far more reliable source if actual growth looks unusual.",
+        },
+      ],
+    },
   },
   {
     slug: "concrete-calculator",
@@ -185,6 +243,39 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["square-footage-calculator", "gravel-calculator"],
+    content: {
+      intro: [
+        "This calculator converts a slab's length, width and thickness into the cubic yards of ready-mix concrete you'd order from a truck, plus the equivalent number of pre-mix bags if you're hand-mixing instead. It's built for the moment before a materials run — sizing a patio, footing, shed pad or fence post job before you're standing in the aisle guessing.",
+        "Concrete is priced and delivered by the cubic yard for anything of real size, but most DIY jobs (a small pad, a handful of post holes) are more practically done with bagged mix from a hardware store — this tool gives you both units side by side so you can pick whichever matches how you're actually buying.",
+        "Thickness is entered in inches because that's how slabs are specified, while length and width stay in feet — the calculator handles the unit conversion so you don't have to convert inches to feet in your head before multiplying.",
+      ],
+      howItWorks: [
+        "Volume starts as length × width × thickness, with thickness converted from inches to feet first (divided by 12), giving a raw cubic-foot volume. Dividing by 27 converts that to cubic yards, since a cubic yard is 3 ft × 3 ft × 3 ft = 27 cubic feet.",
+        "For bagged concrete, an 80 lb bag yields about 0.6 cubic feet of mixed concrete and a 60 lb bag yields about 0.45 cubic feet — those are standard figures from bag manufacturers, so the calculator divides your total cubic footage by the appropriate yield and rounds up, since you can't buy a partial bag.",
+      ],
+      faq: [
+        {
+          q: "How many bags of concrete do I need per cubic yard?",
+          a: "About 45 bags of 60 lb mix or roughly 34 bags of 80 lb mix per cubic yard, though it's easier to let the calculator do the exact math for your specific slab size rather than working from a flat per-yard rule.",
+        },
+        {
+          q: "Should I use 60 lb or 80 lb bags?",
+          a: "80 lb bags deliver more concrete per bag (fewer bags to carry and mix) but are noticeably heavier to lift; 60 lb bags are easier to handle solo. Both produce the same final concrete once mixed.",
+        },
+        {
+          q: "What thickness should I use for a driveway versus a walkway?",
+          a: "A typical walkway or patio slab is usually 4 inches thick, while a driveway that needs to support vehicle weight is commonly poured at 5 to 6 inches — check local code for anything load-bearing.",
+        },
+        {
+          q: "Should I order extra concrete beyond the calculated amount?",
+          a: "Most contractors add 5–10% over the calculated volume to cover an uneven subgrade, spillage and minor measurement error — it's cheaper to have a little extra than to run short mid-pour.",
+        },
+        {
+          q: "Is ready-mix delivery worth it for a small job?",
+          a: "For anything under roughly half a cubic yard, bagged mix is usually more practical since most ready-mix suppliers have delivery minimums; above that, a truck often works out cheaper per yard and saves a lot of manual mixing.",
+        },
+      ],
+    },
   },
   {
     slug: "bra-size-calculator",
@@ -219,6 +310,34 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["shoe-size-conversion"],
+    content: {
+      intro: [
+        "This calculator estimates a bra size from two tape-measure numbers: your band measurement (snug, directly under the bust) and your bust measurement (around the fullest point). It's the same band-and-cup math used behind the counter at a fitting appointment, just without needing to book one.",
+        "People usually pull this up after a weight change, after a bra stops fitting the way it used to, or when shopping online somewhere without a fitting room — a size estimate up front saves a round of returns. It's also a common first stop for someone buying their first bra and unsure where to even start.",
+        "Because it's just a bit of arithmetic on two numbers you already typed in, everything runs locally in your browser — there's no account, no measurement history saved anywhere, and nothing about your body leaves your device.",
+      ],
+      howItWorks: [
+        "The band size rounds your underbust measurement to the nearest even number, which is how bra bands are conventionally sized. The cup size comes from the difference between your bust and underbust measurements: each full inch of difference steps up one cup letter, starting at AA for a 0\" difference, A for 1\", B for 2\", and so on.",
+      ],
+      faq: [
+        {
+          q: "How do I measure for band and bust size at home?",
+          a: "Measure the band snugly around your ribcage directly under your bust, keeping the tape level and parallel to the floor. Measure the bust around the fullest part while wearing an unpadded bra, then let the difference between the two numbers determine your cup size.",
+        },
+        {
+          q: "Why did I get a different size than what I usually buy?",
+          a: "Sizing isn't standardized across brands — a cut that runs small in one label can run large in another, and this calculator gives a starting estimate rather than a guaranteed fit. Treat the result as a size to try on or order first, not a final answer.",
+        },
+        {
+          q: "What if my measurement falls between two even band numbers?",
+          a: "Round to the nearest even number, which is the convention most brands use for band sizing — an odd measurement like 33 inches typically rounds to a 34 band.",
+        },
+        {
+          q: "Does this account for sister sizing?",
+          a: "Not directly. Sister sizes (the same cup volume in an adjacent band size, like 34C and 36B) are a separate concept from this estimate — if the calculated size doesn't fit right, trying the sister size up or down in band with the opposite cup direction is a common next step.",
+        },
+      ],
+    },
   },
   {
     slug: "fuel-cost-calculator",
@@ -256,6 +375,34 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["gas-mileage-calculator", "mileage-calculator"],
+    content: {
+      intro: [
+        "This calculator turns a trip distance, your vehicle's fuel economy, and the current price at the pump into a single dollar figure for how much gas the drive will burn. It's built for the moment before a road trip — or before agreeing to a long commute — when you want a real number instead of a guess.",
+        "It gets used for budgeting a vacation drive, comparing the fuel cost of two possible routes, splitting gas money fairly for a shared ride, or working out whether it's cheaper to drive or fly somewhere once fuel is priced in.",
+        "The math is a straightforward division and multiplication, run entirely in your browser — nothing about your trip, vehicle or destination is saved or sent anywhere.",
+      ],
+      howItWorks: [
+        "Gallons needed is simply trip distance divided by your vehicle's miles-per-gallon rating, and total cost is that gallon figure multiplied by the price per gallon. The result is compared against a 25 MPG baseline (roughly the current average for US passenger vehicles) so you can see how much your specific vehicle's efficiency is saving or costing you on this trip.",
+      ],
+      faq: [
+        {
+          q: "What MPG number should I use if I don't know my car's exact fuel economy?",
+          a: "Check your vehicle's window sticker or owner's manual for the EPA combined rating, or calculate your real-world average with the Gas Mileage Calculator using your last fill-up's miles and gallons — actual mileage often runs a bit below the EPA sticker number, especially on highway trips at higher speeds.",
+        },
+        {
+          q: "Does this account for highway versus city driving?",
+          a: "No — it uses a single MPG figure for the whole trip. If your trip mixes highway and city driving, use a blended MPG estimate, or your vehicle's combined EPA rating, for a more realistic result.",
+        },
+        {
+          q: "How do I estimate fuel cost for a round trip?",
+          a: "Enter the round-trip distance (double the one-way mileage) rather than just the one-way distance, and the calculator will return the total fuel cost for the full trip there and back.",
+        },
+        {
+          q: "Why does the comparison bar show a 25 MPG baseline?",
+          a: "It's a rough average fuel economy figure for gas-powered passenger vehicles in the US, included so you have a quick reference point for whether your vehicle's efficiency is helping or hurting your fuel budget on this specific trip.",
+        },
+      ],
+    },
   },
   {
     slug: "gas-mileage-calculator",
@@ -288,6 +435,34 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["fuel-cost-calculator"],
+    content: {
+      intro: [
+        "This calculator works out your car's actual fuel economy from two numbers you can read off the pump and the odometer: how many miles you drove and how many gallons it took to fill back up. It's the simplest possible way to check your real MPG instead of relying on the EPA sticker rating.",
+        "Drivers use it right after a fill-up to track fuel economy over time, to see whether a recent oil change or a set of new tires changed anything, or to compare how a car performs on a highway-heavy trip versus routine city driving.",
+        "It's one division done in your browser — no trip logs, no account, nothing stored between visits unless you choose to write the number down yourself.",
+      ],
+      howItWorks: [
+        "MPG is simply miles driven divided by gallons of fuel used to cover that distance. For a clean reading, fill the tank completely, reset your trip odometer (or note the mileage), drive normally, then fill up again and divide the miles by the gallons it took to fill it back to full.",
+      ],
+      faq: [
+        {
+          q: "Why is my calculated MPG lower than the EPA rating on my car's window sticker?",
+          a: "EPA ratings are measured under controlled test conditions. Real-world driving — city traffic, cold starts, air conditioning, aggressive acceleration, hilly terrain — routinely brings actual MPG below the sticker number, sometimes by several miles per gallon.",
+        },
+        {
+          q: "How do I get an accurate reading?",
+          a: "Fill the tank completely and note the odometer reading, drive as you normally would, then fill up again to full and divide the miles driven by the gallons it took to refill. Filling only partially either time throws off the gallons number and skews the result.",
+        },
+        {
+          q: "Does one fill-up give a reliable number?",
+          a: "It's a reasonable snapshot, but MPG naturally varies fill to fill based on driving conditions. Tracking it over several fill-ups and averaging gives a more stable picture of your car's real fuel economy.",
+        },
+        {
+          q: "What counts as good gas mileage?",
+          a: "It depends heavily on vehicle type — a compact sedan averaging in the high 30s is doing well, a midsize SUV in the low-to-mid 20s is typical, and a hybrid can push well past 40 MPG. The gauge above compares your result against general gas-vehicle bands rather than a single fixed target.",
+        },
+      ],
+    },
   },
   {
     slug: "mileage-calculator",
@@ -320,6 +495,34 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["fuel-cost-calculator"],
+    content: {
+      intro: [
+        "This calculator multiplies business miles driven by a per-mile rate to work out mileage reimbursement — the standard method employers and the IRS use to compensate for using a personal vehicle for work, without tracking every gallon of gas or oil change receipt separately.",
+        "It's used by freelancers and employees logging trips for expense reports, by small business owners figuring out what to reimburse themselves or their staff, and by anyone estimating a tax deduction for business use of a personal vehicle under the standard mileage method.",
+        "The default rate reflects the IRS standard business mileage rate, but the field is fully editable — some employers set their own reimbursement rate above or below the IRS figure, and this calculator works the same either way.",
+      ],
+      howItWorks: [
+        "Reimbursement is simply miles driven multiplied by the rate per mile. The IRS standard mileage rate is meant to cover the average cost of operating a vehicle — gas, depreciation, maintenance, insurance — bundled into one number, which is why it's typically used instead of tracking every actual expense.",
+      ],
+      faq: [
+        {
+          q: "What is the current IRS standard mileage rate?",
+          a: "The IRS sets a standard business mileage rate each year — 67 cents per mile for 2024 — which is prefilled as the default rate here, though you can overwrite it with your employer's own rate or a prior year's figure if that's what applies.",
+        },
+        {
+          q: "Can I use the standard mileage rate and also deduct gas separately?",
+          a: "No. The standard mileage rate is meant to already cover fuel, depreciation, maintenance and insurance combined — under IRS rules you choose either the standard mileage method or the actual expense method for a given vehicle, not a mix of both.",
+        },
+        {
+          q: "Does this include commuting miles?",
+          a: "It shouldn't — ordinary commuting between home and a regular workplace generally isn't deductible or reimbursable business mileage. This calculator just multiplies whatever mile figure you enter, so it's on you to log only qualifying business trips.",
+        },
+        {
+          q: "Why would my employer use a different rate than the IRS standard?",
+          a: "Employers aren't required to use the IRS rate for reimbursement — some set a flat internal rate that's higher or lower. The IRS rate mainly matters directly if you're claiming an unreimbursed mileage deduction yourself, which itself is limited under current tax law for most employees.",
+        },
+      ],
+    },
   },
   {
     slug: "horsepower-calculator",
@@ -349,6 +552,35 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["engine-horsepower-calculator"],
+    content: {
+      intro: [
+        "This calculator converts a torque and RPM reading into horsepower using the standard formula every dyno sheet and engine spec chart relies on. Torque and horsepower are related but distinct measurements, and this is the direct math connecting the two at any given engine speed.",
+        "It gets used by engine builders and car enthusiasts reading a dyno printout that only lists torque at a specific RPM, by anyone comparing spec sheets between engines that quote figures differently, or just out of curiosity about how a particular torque number translates into horsepower.",
+        "Because it's one formula applied to two numbers, everything computes instantly in your browser with no need to look up a conversion chart.",
+      ],
+      howItWorks: [
+        "Horsepower equals torque (in lb-ft) multiplied by RPM, divided by the constant 5252. That constant isn't arbitrary — it falls directly out of the unit conversion between torque and power (horsepower is defined as work per unit time, and 5252 is the RPM value where the numeric torque and horsepower figures always come out equal, regardless of the engine).",
+        "That crossover point is why torque and horsepower curves on a dyno chart always intersect exactly at 5252 RPM — below that RPM, torque reads higher than horsepower, and above it, horsepower reads higher.",
+      ],
+      faq: [
+        {
+          q: "Why do torque and horsepower always cross at 5252 RPM on a dyno chart?",
+          a: "It's a direct consequence of the formula itself — HP = torque × RPM ÷ 5252 forces the two curves to have identical numeric values whenever RPM equals 5252, no matter what engine is being measured. It's not a coincidence specific to any one engine.",
+        },
+        {
+          q: "Is horsepower or torque more important for performance?",
+          a: "They describe different things — torque is rotational force, horsepower is the rate of doing work over time (it factors in RPM). A high-revving engine can make strong horsepower with modest torque, while a low-revving diesel can make huge torque with modest horsepower; which matters more depends on the application.",
+        },
+        {
+          q: "Where do I find my engine's torque and RPM figures?",
+          a: "A dyno printout is the most accurate source, since it measures your specific engine rather than a factory average. Manufacturer spec sheets also list peak torque and the RPM it occurs at, though that's usually the single peak value rather than a full curve.",
+        },
+        {
+          q: "Does this calculator account for drivetrain losses?",
+          a: "No — this is the raw torque-to-horsepower conversion at the crankshaft (or wherever the torque was measured). Power measured at the wheels on a chassis dyno is typically lower due to drivetrain losses, and this formula doesn't adjust for that difference.",
+        },
+      ],
+    },
   },
   {
     slug: "engine-horsepower-calculator",
@@ -378,6 +610,35 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["horsepower-calculator"],
+    content: {
+      intro: [
+        "This calculator estimates engine horsepower using nothing but vehicle weight and the trap speed recorded at the end of a quarter-mile drag run — the same rough method racers have used for decades to ballpark power without a dyno session.",
+        "It's mainly used by drag racing and drag-strip enthusiasts comparing runs, by someone who just picked up a timeslip and wants a horsepower ballpark, or by anyone curious how much power a given trap speed roughly implies for a car of a certain weight.",
+        "It's a well-known formula from racing, not a precision instrument — treat the output as a starting estimate to compare against, not a substitute for an actual dyno pull.",
+      ],
+      howItWorks: [
+        "The formula divides trap speed by 234, cubes that ratio, and multiplies by the vehicle's weight — a relationship derived empirically from drag racing data rather than from first-principles physics. It works reasonably well as a rough estimate for typical passenger-car-based drag cars but gets less reliable for vehicles with unusual aerodynamics, all-wheel drive, or significant power-to-weight extremes.",
+        "Because it only uses weight and trap speed, it doesn't account for aerodynamic drag, drivetrain losses, launch technique, or track conditions — two cars with identical horsepower can post different trap speeds for reasons this formula can't see.",
+      ],
+      faq: [
+        {
+          q: "How accurate is the trap speed horsepower formula?",
+          a: "It's a widely used rule-of-thumb estimate, generally considered reasonably close for typical rear-wheel-drive cars, but it can be off by a meaningful margin for vehicles with unusual weight distribution, aerodynamics, or drivetrain type. Treat it as a ballpark, not a dyno-accurate number.",
+        },
+        {
+          q: "What weight should I enter — curb weight or race weight?",
+          a: "Use the actual weight of the car as it ran down the strip, including the driver and any fuel on board — race weight, not the bare curb weight off a spec sheet, since that's what the trap speed actually reflects.",
+        },
+        {
+          q: "Why do two cars with the same horsepower post different trap speeds?",
+          a: "Trap speed is also affected by aerodynamic drag, gearing, launch quality, tire grip, and track surface — this formula assumes those factors are roughly average, so a car with poor aerodynamics or a bad launch will trap slower than its true horsepower would suggest.",
+        },
+        {
+          q: "Is this the same as horsepower measured at the wheels?",
+          a: "It's closer to an estimate of flywheel (crank) horsepower, since it's derived from full vehicle performance rather than a chassis dyno roller. It won't exactly match either a crank dyno or a wheel dyno reading, but it lands in a similar ballpark.",
+        },
+      ],
+    },
   },
   {
     slug: "tire-size-calculator",
@@ -414,6 +675,35 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: [],
+    content: {
+      intro: [
+        "This calculator compares the overall diameter of two tire sizes given as width/aspect-ratio/rim-diameter — the three numbers printed on a tire's sidewall, like 225/50R17. It's built for the moment you're eyeing a size change and want to know how much it actually shifts the tire's height before you order a set.",
+        "It's used for plus-sizing (moving to a wider tire on a bigger wheel while trying to keep overall diameter close to stock), for checking whether a used set of tires from a different size will roughly fit, and for understanding how a size swap will throw off a speedometer or odometer reading.",
+        "Enter both sizes and it works out each tire's overall diameter along with the percentage difference between them — the number that actually matters for fitment and speedometer accuracy.",
+      ],
+      howItWorks: [
+        "Overall diameter starts from the rim diameter (already in inches) and adds twice the sidewall height, since the sidewall appears above and below the rim. Sidewall height is the tire's width in millimeters times its aspect ratio (as a percentage), converted from millimeters to inches by dividing by 25.4.",
+        "A tire's speedometer reading assumes the diameter (and therefore the distance covered per revolution) the vehicle was calibrated for. Swap in a tire with a meaningfully different overall diameter and every wheel rotation covers a different distance than the speedometer expects, throwing off both the speed reading and the odometer's mileage count by roughly the same percentage as the diameter difference.",
+      ],
+      faq: [
+        {
+          q: "How much tire size difference is considered safe?",
+          a: "A commonly cited rule of thumb is to keep overall diameter within about 3% of the stock size — beyond that, speedometer error, clearance issues, and handling changes become more noticeable. Some vehicles tolerate more, some less, so check clearance physically when in doubt.",
+        },
+        {
+          q: "What do the three numbers on a tire (like 225/50R17) mean?",
+          a: "225 is the tire's width in millimeters, 50 is the aspect ratio — the sidewall height as a percentage of that width — and 17 is the wheel rim diameter in inches that the tire is built to fit.",
+        },
+        {
+          q: "Why would a larger tire make my speedometer read slower than my actual speed?",
+          a: "A taller tire covers more ground per revolution than the vehicle's speed sensor was calibrated to expect, so the speedometer under-reads your actual road speed — you're going faster than the dash shows.",
+        },
+        {
+          q: "Does plus-sizing (bigger wheel, lower-profile tire) change the overall diameter?",
+          a: "Not necessarily — the goal of plus-sizing is usually to pick a lower aspect ratio tire on a larger wheel so the overall diameter stays close to the original, which is exactly the comparison this calculator is built to check.",
+        },
+      ],
+    },
   },
   {
     slug: "stair-calculator",
@@ -449,6 +739,35 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["roofing-calculator"],
+    content: {
+      intro: [
+        "This calculator works out how many steps a staircase needs, how tall each riser will be, and how long the stringer (the diagonal cutting board the treads attach to) needs to be — starting from just the total vertical rise, the tread depth you want, and a maximum riser height limit.",
+        "It's built for the moment before cutting stringers on a deck, porch, shed or basement staircase: measure the total height the stairs need to climb, and the calculator spreads that rise evenly across the fewest steps that keep every riser under your code limit.",
+        "Getting riser height even and consistent matters more than it might seem — a staircase where one step is noticeably taller or shorter than the rest is a well-documented tripping hazard, which is exactly what evenly dividing the total rise avoids.",
+      ],
+      howItWorks: [
+        "The calculator first figures out the minimum number of steps needed so that no single riser exceeds your maximum riser height, then divides the total rise evenly across that many steps — this is what keeps every riser exactly the same height rather than leaving an odd, mismatched last step.",
+        "Total run is the tread depth multiplied by one fewer than the number of steps (since the top step's edge is level with the landing, not a separate tread). Stringer length is then found with the Pythagorean theorem, treating rise and run as the two legs of a right triangle: stringer = √(rise² + run²).",
+      ],
+      faq: [
+        {
+          q: "What's a typical maximum riser height allowed by code?",
+          a: "Most US residential codes cap riser height around 7 to 7.75 inches, though the exact limit varies by jurisdiction — check your local building code before finalizing a design, especially for anything requiring a permit.",
+        },
+        {
+          q: "Why does the calculator sometimes give a riser height lower than my code maximum?",
+          a: "Because it needs a whole number of steps to divide the total rise evenly, the actual riser height is often a bit under the maximum you entered — for example, a rise that doesn't divide evenly by 7.5 inches will land on a slightly smaller, consistent riser height instead.",
+        },
+        {
+          q: "What's a comfortable tread depth for outdoor stairs?",
+          a: "10 to 11 inches is a common comfortable range for exterior stairs, giving enough room for a full foot placement; indoor stairs are sometimes built shallower due to space constraints, but shallower treads generally feel less comfortable to walk.",
+        },
+        {
+          q: "How is stringer length different from total rise?",
+          a: "Stringer length is the diagonal length of the board that supports the stairs — always longer than the vertical rise alone, since it also has to span the horizontal run. That's why it's calculated with the Pythagorean theorem rather than just using the rise.",
+        },
+      ],
+    },
   },
   {
     slug: "resistor-calculator",
@@ -492,6 +811,35 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["ohms-law-calculator"],
+    content: {
+      intro: [
+        "This calculator decodes a standard 4-band resistor color code into its actual resistance value and tolerance — the same reading you'd get with a multimeter, but from just looking at the colored bands printed on the part.",
+        "It's a staple tool for electronics hobbyists, students learning circuit basics, and anyone sorting through a parts bin of unmarked resistors trying to identify what's what without a meter handy. It's also useful the other direction — checking that a resistor you're about to solder in actually matches the value your schematic calls for.",
+        "Pick each band's color from the dropdowns in left-to-right reading order and it works out the resistance immediately, along with a breakdown of what each individual band contributes.",
+      ],
+      howItWorks: [
+        "On a 4-band resistor, the first two bands are significant digits, the third band is a power-of-ten multiplier, and the fourth band indicates tolerance. The two digit bands combine into a two-digit number, which is then multiplied by the third band's multiplier value to get the resistance in ohms.",
+        "The tolerance band doesn't change the nominal resistance value — it tells you the manufacturing precision, meaning the actual part could measure anywhere within that percentage of the stated value and still be considered in spec. Gold (±5%) and silver (±10%) are the most common tolerance bands on general-purpose resistors.",
+      ],
+      faq: [
+        {
+          q: "Which end of the resistor do I read first?",
+          a: "Read from the end furthest from the tolerance band, which is usually gold or silver and set slightly apart from the other three bands — that gap marks it as the last band, so you read the color code starting from the opposite end.",
+        },
+        {
+          q: "What's the difference between a 4-band and 5-band resistor?",
+          a: "A 4-band resistor has two significant digit bands, while a 5-band resistor has three, giving it one more digit of precision — 5-band resistors are typically used where tighter tolerances (like ±1%) are needed. This calculator handles the more common 4-band case.",
+        },
+        {
+          q: "What does the tolerance band actually tell me?",
+          a: "It's the manufacturer's guaranteed accuracy range around the stated resistance — a 100Ω resistor with a gold ±5% band could measure anywhere from 95Ω to 105Ω and still be within spec, which matters for precision circuits but rarely for general-purpose use.",
+        },
+        {
+          q: "Why do my measured and calculated resistance values not match exactly?",
+          a: "A little difference is expected and normal — it should fall within the tolerance band's stated percentage. If a multimeter reading is far outside that range, the resistor may be damaged, mislabeled, or misread.",
+        },
+      ],
+    },
   },
   {
     slug: "ohms-law-calculator",
@@ -552,6 +900,34 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["resistor-calculator", "electricity-calculator"],
+    content: {
+      intro: [
+        "This calculator solves Ohm's Law — the relationship V = I × R between voltage, current and resistance — for whichever of the three values you're missing. Pick what you want to solve for, enter the other two, and it does the division or multiplication for you.",
+        "It's a first-week concept in any electronics course, but it stays useful well past the classroom: sizing a resistor for an LED circuit, checking whether a component can handle the current a circuit will actually draw, or just verifying a hand calculation before building something.",
+        "Because it's pure arithmetic on three related quantities, the result updates instantly with no data leaving your browser.",
+      ],
+      howItWorks: [
+        "Ohm's Law states that voltage equals current times resistance (V = I × R) for a simple resistive circuit. Rearranging that same relationship gives the other two forms: current equals voltage divided by resistance (I = V ÷ R), and resistance equals voltage divided by current (R = V ÷ I) — the calculator just picks whichever rearrangement matches what you're solving for.",
+      ],
+      faq: [
+        {
+          q: "What is Ohm's Law used for in practice?",
+          a: "It's the basic relationship for sizing components in any resistive circuit — figuring out what resistor value limits current to a safe level for an LED, checking a fuse or wire's current rating against expected load, or working backward from a measured voltage and resistance to find current draw.",
+        },
+        {
+          q: "Does Ohm's Law apply to AC circuits with capacitors and inductors?",
+          a: "Not directly in this simple form — capacitors and inductors introduce reactance, which behaves differently from plain resistance and requires impedance calculations instead. This calculator's V = I × R form applies cleanly to DC circuits and purely resistive AC loads.",
+        },
+        {
+          q: "How do I find power (watts) from these values?",
+          a: "Power isn't part of Ohm's Law directly, but it's closely related: P = V × I. Once you know any two of voltage, current and resistance from this calculator, you can multiply voltage by current to get power in watts.",
+        },
+        {
+          q: "Why is my calculated current higher than what a component is rated for?",
+          a: "That usually means the resistance in the circuit is too low for the voltage applied — Ohm's Law is telling you the circuit will draw more current than the part can safely handle, which is a sign to increase resistance (or reduce voltage) before building it.",
+        },
+      ],
+    },
   },
   {
     slug: "electricity-calculator",
@@ -584,6 +960,34 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["ohms-law-calculator"],
+    content: {
+      intro: [
+        "This calculator turns an appliance's power draw in watts, how many hours a day you run it, and your electricity rate into a concrete cost — daily, weekly, monthly and yearly. It's built for the moment you're wondering whether a space heater, an old fridge, or a gaming PC left on all day is actually costing you much.",
+        "People use it to compare running costs between two appliances, to spot which device is quietly driving up an electricity bill, or to decide whether upgrading to a more efficient model is worth it once the yearly savings are laid out in dollars.",
+        "The math is simple multiplication done locally in your browser — nothing about your appliances or your electricity rate is stored or sent anywhere.",
+      ],
+      howItWorks: [
+        "Energy use in kilowatt-hours is watts multiplied by hours used, divided by 1000 (since a kilowatt is 1000 watts) — kWh is the unit utilities actually bill you on, not raw watts. That daily kWh figure is then multiplied by your cost per kWh to get a daily cost, which is projected out to weekly, monthly and yearly totals by simple multiplication.",
+      ],
+      faq: [
+        {
+          q: "Where do I find an appliance's wattage?",
+          a: "Check the label on the appliance itself, its nameplate, or the manufacturer spec sheet — most list wattage directly. If only amps and voltage are given, multiply them together (watts = volts × amps) to get an estimate.",
+        },
+        {
+          q: "Where do I find my electricity rate?",
+          a: "Your utility bill lists a rate per kilowatt-hour, usually somewhere in the billing details or a rate summary section. Rates vary significantly by region and sometimes by time of day, so use your actual bill's number for the most accurate result.",
+        },
+        {
+          q: "Does this account for standby power when an appliance is off but plugged in?",
+          a: "No — this only calculates cost for the hours per day you specify as active use. Many electronics draw a small amount of standby power even when switched off, which this calculator doesn't separately account for unless you include it in your hours figure.",
+        },
+        {
+          q: "Why does a small wattage difference matter so much over a year?",
+          a: "Small daily costs compound — a device costing just a few cents a day can add up to tens of dollars over a full year of continuous use, which is exactly why the yearly figure is included alongside the daily one.",
+        },
+      ],
+    },
   },
   {
     slug: "voltage-drop-calculator",
@@ -624,6 +1028,35 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["ohms-law-calculator"],
+    content: {
+      intro: [
+        "This calculator estimates how much voltage is lost along a copper wire run given its gauge, length and the current it's carrying — the check an electrician runs before wiring anything with a long cable path, like a detached garage, a well pump, or a workshop out past the house.",
+        "Wire isn't a perfect conductor — every foot of it has a small amount of resistance, and over a long enough run at high enough current, that resistance quietly eats into the voltage that actually reaches the load. This tool sizes that loss before the wire is bought and run, since undersizing a long circuit is expensive to fix after drywall is up.",
+        "Enter the wire gauge, the one-way length of the run, the expected current draw and the system voltage, and it returns both the voltage lost and the percentage drop — the number that actually determines whether a gauge is adequate.",
+      ],
+      howItWorks: [
+        "Voltage drop is calculated from the wire's resistance per 1000 feet (a standard published figure for each AWG copper wire gauge), the one-way length of the run, and the current flowing through it. The length is doubled in the formula because current has to travel out to the load and back through the return conductor — a 50-foot run means 100 feet of total conductor.",
+        "The percentage drop is just the voltage lost divided by the system voltage. Electricians commonly target keeping voltage drop under about 3% for branch circuits, since drops beyond that can cause dim lighting, motors that run hot or underperform, and other symptoms of an undersized wire run.",
+      ],
+      faq: [
+        {
+          q: "What voltage drop percentage is acceptable?",
+          a: "3% is a widely used guideline for branch circuits, and 5% is often cited as a combined limit for a feeder plus branch circuit together — beyond that, equipment can underperform and the National Electrical Code offers this as a recommended (not always mandatory) design target.",
+        },
+        {
+          q: "How do I fix excessive voltage drop?",
+          a: "The two main levers are using a thicker (lower AWG number) wire gauge, which has less resistance per foot, or shortening the run if that's practical. Reducing the current draw isn't usually an option since that's dictated by the load itself.",
+        },
+        {
+          q: "Why does wire length matter twice as much as I'd expect?",
+          a: "Because current has to complete a full circuit — it flows out through one conductor and back through another — so a 100-foot one-way run actually involves 200 feet of wire resistance total. This calculator's length input is one-way and doubles it internally to account for that.",
+        },
+        {
+          q: "Does thicker wire always solve voltage drop?",
+          a: "Generally yes — thicker wire has lower resistance per foot, which directly reduces voltage drop for the same length and current. The tradeoff is cost and physical size, so the goal is usually the thinnest gauge that still keeps drop within an acceptable range, not the thickest wire available.",
+        },
+      ],
+    },
   },
   {
     slug: "btu-calculator",
@@ -670,6 +1103,35 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["square-footage-calculator"],
+    content: {
+      intro: [
+        "This calculator gives a ballpark BTU (British Thermal Unit) capacity for heating or cooling a room, based on its floor area and how demanding the climate or insulation situation is. It's the number to have in hand before shopping for a window AC unit, a portable heater, or a mini-split.",
+        "Buying HVAC equipment by BTU rating without a sizing check is a common way to end up disappointed — a unit that's too small runs constantly and never quite catches up, while one that's oversized short-cycles, wastes energy, and can leave a room feeling clammy since it cools too fast to properly dehumidify.",
+        "Enter the room's square footage and pick the climate and insulation description that best matches your situation, and the calculator returns a BTU target along with where that lands relative to common equipment sizing (in both BTU and the 'tons' HVAC gear is conventionally rated in).",
+      ],
+      howItWorks: [
+        "The calculation multiplies room area in square feet by a BTU-per-square-foot factor that scales with climate severity and insulation quality — a mild, well-insulated space needs less cooling or heating capacity per square foot than a poorly insulated room in a hot climate with heavy sun exposure.",
+        "HVAC capacity is also commonly expressed in \"tons\" of cooling, where 1 ton equals 12,000 BTU per hour — a unit of measure that dates back to the amount of heat needed to melt a ton of ice in 24 hours. The calculator shows both units since equipment listings often use tons while room-sizing guides typically use raw BTU figures.",
+      ],
+      faq: [
+        {
+          q: "What happens if I buy an oversized AC unit \"to be safe\"?",
+          a: "An oversized unit cools the room quickly but shuts off before it has time to properly remove humidity, which can leave the space feeling cold and clammy rather than genuinely comfortable — it also cycles on and off more often, adding wear and using more energy than a correctly sized unit.",
+        },
+        {
+          q: "Does ceiling height affect the BTU calculation?",
+          a: "This calculator uses floor area with a standard ceiling height assumption. A room with unusually high ceilings has more air volume to condition than the floor area alone suggests, and may need a somewhat higher BTU capacity than this estimate provides.",
+        },
+        {
+          q: "Do I need to account for sun exposure or the number of windows?",
+          a: "Significant direct sun exposure is one reason to pick the more demanding climate option in the dropdown — a sunny, south-facing room with lots of glass generally needs more cooling capacity than the same square footage in a shaded, well-insulated room.",
+        },
+        {
+          q: "What does 1 ton of AC capacity mean in practice?",
+          a: "One ton equals 12,000 BTU per hour of cooling capacity — a term that comes from the amount of heat needed to melt one ton of ice in a day. Residential AC units are commonly sold in ton increments (1.5 ton, 2 ton, 3 ton, etc.), which is why this calculator shows tons alongside raw BTU.",
+        },
+      ],
+    },
   },
   {
     slug: "square-footage-calculator",
@@ -708,6 +1170,31 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["area-calculator", "tile-calculator"],
+    content: {
+      intro: [
+        "This calculator multiplies a room's length and width to get its area in square feet, with an optional price-per-square-foot field to turn that area straight into a material cost estimate. It's the number flooring, paint, carpet and countertop quotes are almost always based on.",
+        "It's used before ordering flooring or carpet, before getting a paint or tile quote, when listing or renting a property and needing an accurate square footage figure, or just settling a casual disagreement about how big a room actually is.",
+        "Add a price per square foot and the same calculation gives you an estimated total cost for the room — handy for comparing quotes or budgeting a project before committing to a specific material.",
+      ],
+      faq: [
+        {
+          q: "How do I measure a room for accurate square footage?",
+          a: "Measure the length and width of the room at the floor, in a straight line wall to wall, using a tape measure or laser measure for accuracy. For irregular rooms, break the space into rectangles, calculate each separately, and add the areas together.",
+        },
+        {
+          q: "Does this work for rooms that aren't perfectly rectangular?",
+          a: "Not directly — this calculator handles a single rectangle. For an L-shaped or irregular room, split it mentally into two or more rectangular sections, run each one through the calculator separately, and add the results together for the total.",
+        },
+        {
+          q: "Should I subtract closets, alcoves or built-ins from the square footage?",
+          a: "It depends on what you're using the number for — for flooring or paint material estimates, you usually want the true covered area including closets and alcoves you're actually finishing; for listing square footage, local real estate conventions vary on what counts.",
+        },
+        {
+          q: "How do I convert square feet to square yards for flooring quotes?",
+          a: "Divide square feet by 9, since a square yard is 3 feet by 3 feet (9 square feet). Carpet in particular is commonly priced by the square yard rather than the square foot.",
+        },
+      ],
+    },
   },
   {
     slug: "time-card-calculator",
@@ -750,6 +1237,35 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["hours-calculator"],
+    content: {
+      intro: [
+        "This calculator adds up a week's worth of daily hours, splits them into regular and overtime, and works out total pay at your hourly rate — the same math a payroll system runs, done manually for a quick check.",
+        "Hourly employees use it to verify a paycheck looks right before it's deposited, managers use it to estimate weekly labor cost across a team, and freelancers or contractors use it to total up billable hours logged day by day.",
+        "Enter each day's hours as a comma-separated list and an hourly rate, and it totals the week, splits out anything past 40 hours as overtime, and shows exactly how much of the total pay comes from each.",
+      ],
+      howItWorks: [
+        "Under the standard overtime rule this calculator applies, the first 40 hours in a week are paid at your regular rate, and anything beyond 40 hours is paid at 1.5× that rate (time-and-a-half) — a common baseline under US federal overtime law for non-exempt employees, though some states and specific job categories have different or additional rules.",
+        "Total pay is the sum of regular hours times the regular rate, plus overtime hours times 1.5 times the regular rate — the breakdown shown separates these two pieces so you can see exactly how much of your paycheck came from overtime specifically.",
+      ],
+      faq: [
+        {
+          q: "When does overtime pay kick in?",
+          a: "This calculator uses the common federal threshold of 40 hours in a week — hours beyond that are calculated at 1.5× your regular rate. Some states set different or additional overtime rules (like daily overtime past 8 hours), so check your local labor law if your situation might differ.",
+        },
+        {
+          q: "How do I enter hours for a day I didn't work?",
+          a: "Enter 0 for that day in the comma-separated list, or simply omit it — either way, the total and overtime split will only reflect the hours you actually enter.",
+        },
+        {
+          q: "Does this account for taxes or deductions?",
+          a: "No — this calculates gross pay only, before any tax withholding, insurance deductions, or other paycheck adjustments. The number shown is what you earned before deductions, not your take-home pay.",
+        },
+        {
+          q: "Can I use this for a pay period longer than one week?",
+          a: "The overtime threshold here is based on a single 40-hour week, so for accurate overtime calculation, run each week separately rather than entering a full pay period's hours all at once — combining two weeks into one entry would miscalculate the overtime split.",
+        },
+      ],
+    },
   },
   {
     slug: "time-zone-calculator",
@@ -792,6 +1308,34 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["time-duration-calculator"],
+    content: {
+      intro: [
+        "This calculator converts a clock time from one UTC offset to another — the arithmetic behind figuring out what time it is somewhere else in the world, without needing to remember which direction to shift or squinting at a world clock website.",
+        "It comes up constantly for scheduling a call with someone overseas, figuring out what time a livestream or flight departure actually lands in your own zone, or double-checking a meeting invite that only lists a time zone abbreviation you're not sure of.",
+        "Enter a time along with the source and target UTC offsets, and it shifts the clock time by the difference between them, flagging when the result lands on the previous or next day.",
+      ],
+      howItWorks: [
+        "The calculator finds the difference between the target and source UTC offsets and adds that difference (in hours) to the source time. Because time zones wrap around a 24-hour clock, a shift can push the result past midnight in either direction — when that happens, the calculator flags whether the converted time falls on the previous day, the next day, or the same day as the original.",
+      ],
+      faq: [
+        {
+          q: "Does this calculator account for daylight saving time automatically?",
+          a: "No — you enter the UTC offset directly, so it's on you to use the offset that's currently in effect (for example, US Eastern is UTC-5 in winter but UTC-4 during daylight saving). Double-check which offset applies to your dates before converting.",
+        },
+        {
+          q: "What UTC offset should I use for a specific city?",
+          a: "UTC offsets are commonly listed alongside time zone abbreviations (like UTC-5 for US Eastern Standard Time or UTC+1 for Central European Time) — a quick search for the specific city's current UTC offset will confirm the exact number, especially around daylight saving transitions.",
+        },
+        {
+          q: "Why did my converted time roll over to the next or previous day?",
+          a: "Time zone shifts don't respect the 24-hour clock's boundaries — adding or subtracting several hours from a time near midnight can easily push the result past 00:00 or past 24:00, which is exactly what the day indicator in the results is flagging.",
+        },
+        {
+          q: "How do I convert between two zones that aren't UTC-based in my head?",
+          a: "You don't need to — just enter each zone's own UTC offset, and the calculator handles the difference between them regardless of how far apart the two zones are or which side of UTC they're each on.",
+        },
+      ],
+    },
   },
   {
     slug: "density-calculator",
@@ -846,6 +1390,35 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["molarity-calculator"],
+    content: {
+      intro: [
+        "This calculator solves the density relationship (density = mass ÷ volume) for whichever of the three quantities you're missing — density, mass or volume — given the other two. Pick what you're solving for and it handles the division or multiplication.",
+        "It shows up in physics and chemistry homework, in material identification (comparing a measured density against known reference values to guess what a substance is), and in practical questions like predicting whether an object will float or sink in water.",
+        "Because the calculation is pure arithmetic, results update instantly, and the gauge compares your result directly against water's density — a familiar reference point for whether something floats or sinks.",
+      ],
+      howItWorks: [
+        "Density is mass divided by volume (ρ = m/V). Solving for mass instead multiplies density by volume, and solving for volume divides mass by density — the same relationship rearranged depending on which quantity is unknown.",
+        "Water's density of 1,000 kg/m³ (equivalently 1 g/cm³) is used as the reference point in the gauge: anything less dense than water floats, and anything denser sinks, which is why density is often the deciding factor in float-or-sink questions and material identification.",
+      ],
+      faq: [
+        {
+          q: "Why does density determine whether something floats or sinks?",
+          a: "An object floats in a fluid when it's less dense than that fluid, and sinks when it's denser — this is a direct consequence of buoyancy (Archimedes' principle). Water's density of 1,000 kg/m³ is the reference most float/sink questions are measured against.",
+        },
+        {
+          q: "What units does this calculator use?",
+          a: "Mass in kilograms, volume in cubic meters, and density in kilograms per cubic meter — standard SI units. If your data is in other units (grams, cm³, g/mL), convert first, or note that 1 g/cm³ equals 1,000 kg/m³ for a quick mental conversion.",
+        },
+        {
+          q: "How can I use density to identify an unknown material?",
+          a: "Measure the object's mass and volume, calculate density, and compare the result to a table of known material densities — metals, plastics and liquids each have fairly distinct densities, which is a common quick way to narrow down what something might be.",
+        },
+        {
+          q: "Does temperature affect density?",
+          a: "Yes — most materials expand slightly and become less dense as temperature rises (water near freezing is a notable exception). This calculator computes density from the mass and volume you provide, so any temperature effect needs to already be reflected in those measured values.",
+        },
+      ],
+    },
   },
   {
     slug: "molarity-calculator",
@@ -887,6 +1460,35 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["molecular-weight-calculator"],
+    content: {
+      intro: [
+        "This calculator works out the molarity of a solution — how many moles of solute are dissolved per liter — either directly from a known moles figure, or from a mass and molar mass if you're starting from a scale reading instead of a moles count.",
+        "It's a standard tool in chemistry coursework and lab work: preparing a solution to a target concentration, checking a calculation before mixing reagents, or converting between a recipe given in grams and one given in molarity.",
+        "Switch the input mode depending on what you actually have on hand — moles directly, or mass plus the compound's molar mass — and the calculator handles the rest, including a quick read on whether the resulting solution counts as dilute or concentrated.",
+      ],
+      howItWorks: [
+        "When starting from mass, moles are first found by dividing mass by molar mass (moles = mass ÷ molar mass) — molar mass is specific to each compound and can be found on a label, a safety data sheet, or calculated with the Molecular Weight Calculator.",
+        "Molarity itself is moles of solute divided by the solution's volume in liters (M = mol/L). General chemistry commonly treats concentrations under about 0.1 M as dilute and over 1 M as concentrated, which is the rough scale the gauge above reflects.",
+      ],
+      faq: [
+        {
+          q: "What's the difference between molarity and molality?",
+          a: "Molarity is moles of solute per liter of solution (volume-based), while molality is moles of solute per kilogram of solvent (mass-based). Molarity is more common in general lab work, while molality is preferred when temperature changes might affect volume, since mass doesn't shift with temperature.",
+        },
+        {
+          q: "Where do I find a compound's molar mass?",
+          a: "It's usually printed on the reagent bottle's label or safety data sheet. If you only know the chemical formula, the Molecular Weight Calculator will compute it directly by summing each element's atomic weight.",
+        },
+        {
+          q: "How do I prepare a solution of a specific molarity?",
+          a: "Rearrange the molarity formula to solve for mass: mass = molarity × volume × molar mass. This calculator's mass-input mode does exactly that calculation in reverse — enter mass and molar mass to check the molarity a given amount will produce in your chosen volume.",
+        },
+        {
+          q: "Does molarity change if I dilute the solution?",
+          a: "Yes — adding solvent increases the volume while the moles of solute stay the same, which lowers the molarity proportionally. That relationship (M₁V₁ = M₂V₂) is the basis for calculating dilutions, though this calculator handles the base molarity formula rather than the dilution equation itself.",
+        },
+      ],
+    },
   },
   {
     slug: "molecular-weight-calculator",
@@ -911,6 +1513,34 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["molarity-calculator"],
+    content: {
+      intro: [
+        "This calculator adds up the molecular (molar) weight of a chemical formula by looking up each element's atomic weight and summing it across the formula — type in something like H2O or C6H12O6 and it returns the total in grams per mole, along with each element's individual contribution.",
+        "It's a routine step in chemistry coursework and lab prep: converting a target mass into moles, preparing a solution to a specific molarity, or double-checking a stoichiometry calculation by hand before trusting it.",
+        "The formula parser reads element symbols and their subscript counts directly from what you type, so entering a compound is as quick as typing its formula — no periodic table lookup required.",
+      ],
+      howItWorks: [
+        "Each element's atomic weight (from the periodic table) is multiplied by how many times it appears in the formula, and those contributions are summed to get the total molecular weight. For glucose (C6H12O6), that means 6 carbons, 12 hydrogens and 6 oxygens each contributing their atomic weight times their count.",
+      ],
+      faq: [
+        {
+          q: "Can I enter formulas with parentheses, like Ca(OH)2?",
+          a: "No — this parser reads element symbols and subscript counts directly, without expanding parenthesized groups. For a compound like Ca(OH)2, expand it manually first (CaO2H2) before entering it.",
+        },
+        {
+          q: "Does this handle hydrates, like CuSO4·5H2O?",
+          a: "Not automatically — hydrate notation with a center dot isn't supported by the parser. Calculate the anhydrous compound and the water separately, then add the water's contribution (5 × 18.015 g/mol) by hand for a hydrate.",
+        },
+        {
+          q: "What's the difference between molecular weight and molar mass?",
+          a: "In practice they're used interchangeably for most purposes — both describe the mass of one mole of a substance in grams per mole. Molecular weight technically refers to a single molecule's mass in atomic mass units, but numerically it matches molar mass in g/mol.",
+        },
+        {
+          q: "Why did my formula return an error?",
+          a: "The parser expects standard element symbols with correct capitalization (Na, not NA or na) and no parentheses, spaces, or hydrate dots. Double-check that every part of the formula matches a real element symbol and that counts are written as plain numbers directly after the symbol.",
+        },
+      ],
+    },
   },
   {
     slug: "roman-numeral-converter",
@@ -950,6 +1580,35 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["base-converter"],
+    content: {
+      intro: [
+        "This tool converts a regular number into Roman numerals, or reads a Roman numeral back into a number — the same notation still stamped on clock faces, movie copyright years, book chapter numbers, and the corners of the Super Bowl.",
+        "People reach for it when engraving a wedding date or anniversary year onto a ring, decoding the copyright numerals hidden in a movie's closing credits, checking a Super Bowl or Olympic Games number, or just working through a school assignment on ancient numbering systems.",
+        "Switch the direction depending on which way you're converting, and it shows the breakdown step by step so the logic behind the result is visible, not just the answer.",
+      ],
+      howItWorks: [
+        "Roman numerals use seven symbols (I=1, V=5, X=10, L=50, C=100, D=500, M=1000) combined additively, with a subtractive shortcut for four specific cases: a smaller symbol placed immediately before a larger one subtracts instead of adds (IV=4, IX=9, XL=40, XC=90, CD=400, CM=900). Converting a number to Roman numerals works greedily from the largest value down, repeatedly subtracting the biggest symbol that still fits.",
+        "Reading a Roman numeral back into a number works the opposite way: scan left to right, adding each symbol's value, except when a smaller symbol sits directly before a larger one — in that case, subtract the smaller value instead of adding it.",
+      ],
+      faq: [
+        {
+          q: "What's the highest number this calculator can convert?",
+          a: "Standard Roman numeral notation supports numbers from 1 to 3999 using the basic seven symbols — larger numbers traditionally require an overline notation (multiplying a symbol's value by 1000) that isn't handled here.",
+        },
+        {
+          q: "Why is 4 written as IV instead of IIII?",
+          a: "IV uses the subtractive shortcut (one less than V) and is the standard modern convention, though IIII does appear historically and is still occasionally used on clock faces for visual symmetry with VIII on the opposite side.",
+        },
+        {
+          q: "How do I read a Roman numeral copyright date in movie credits?",
+          a: "Break it into recognizable chunks from left to right — for MCMXCIV, that's M (1000) + CM (900) + XC (90) + IV (4), totaling 1994. Entering the numeral into this calculator's reverse mode does that breakdown automatically.",
+        },
+        {
+          q: "Can Roman numerals represent zero or negative numbers?",
+          a: "No — the classical Roman numeral system has no symbol for zero and no way to represent negative values, which is one of the reasons it was eventually replaced by Arabic numerals for general arithmetic.",
+        },
+      ],
+    },
   },
   {
     slug: "golf-handicap-calculator",
@@ -983,6 +1642,35 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: [],
+    content: {
+      intro: [
+        "This calculator estimates a golf handicap index from a course rating, slope rating and a list of your recent round scores — a simplified version of the differential-based system golfers use to compare skill across different courses of varying difficulty.",
+        "Golfers use it after a round to track how their handicap is trending, before a tournament to submit or verify an estimated index, or just to satisfy curiosity about where a handful of recent scores puts them without digging through an official handicap tracking app.",
+        "Enter your course and slope rating along with a comma-separated list of recent scores, and it calculates a score differential for each round before combining the best ones into an index.",
+      ],
+      howItWorks: [
+        "Each round produces a score differential: (your score − course rating) × 113 ÷ slope rating. The 113 constant is the slope rating of a course of \"standard\" difficulty, which normalizes differentials so rounds on harder or easier courses can be fairly compared against each other.",
+        "The handicap index is calculated from only your best half of recent differentials (not all of them), averaged and then multiplied by 0.96 — a deliberate downward adjustment baked into the handicap system. This calculator uses that same best-half approach as a simplified stand-in for the official USGA method, which uses more detailed round-count tables depending on how many rounds you've played.",
+      ],
+      faq: [
+        {
+          q: "Why does the handicap only use my best rounds instead of all of them?",
+          a: "The handicap system is meant to reflect potential skill level, not average performance, so it deliberately weights toward your better rounds rather than averaging in every score — using only the best half of recent differentials is a simplified version of that same idea.",
+        },
+        {
+          q: "What are course rating and slope rating?",
+          a: "Course rating is the expected score for a scratch (zero-handicap) golfer on that course, while slope rating measures how much harder the course plays for a bogey golfer relative to a scratch golfer — both numbers are printed on the scorecard or the course's official rating sheet.",
+        },
+        {
+          q: "How many rounds do I need for an accurate handicap?",
+          a: "More recent rounds generally produce a more stable and representative handicap. The official USGA system uses a sliding scale based on how many of your last 20 rounds are available; this calculator's simplified best-half method works reasonably with as few as a handful of rounds, but stabilizes further with more.",
+        },
+        {
+          q: "Is this the same number as my official USGA Handicap Index?",
+          a: "It's a close approximation using the same core differential formula, but the official USGA system applies more detailed round-count tables and additional adjustments that this simplified calculator doesn't replicate exactly — treat this as a solid estimate, not an official index.",
+        },
+      ],
+    },
   },
   {
     slug: "sleep-calculator",
@@ -1030,6 +1718,35 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["age-calculator"],
+    content: {
+      intro: [
+        "This calculator works out either a set of bedtime options based on when you need to wake up, or a set of wake-up time options based on when you're going to bed — both built around 90-minute sleep cycles rather than a flat 8-hour target.",
+        "It's for the moment before setting an alarm: deciding what time to actually go to bed given a fixed wake-up time tomorrow, or figuring out the best time to wake up if you're heading to bed right now and want to avoid a groggy mid-cycle wakeup.",
+        "Rather than a single recommendation, it lists several options at different cycle counts, since waking up cleanly at the end of a cycle usually matters more for feeling rested than simply maximizing total hours.",
+      ],
+      howItWorks: [
+        "Sleep progresses in cycles of roughly 90 minutes each, moving through lighter and deeper stages before starting the next cycle. Waking up in the middle of a cycle — especially during deep sleep — tends to produce that groggy, hard-to-shake feeling known as sleep inertia, even if the total hours slept were reasonable.",
+        "The calculator adds a 15-minute buffer for the average time it takes to actually fall asleep, then works in whole 90-minute increments from there — showing a few options (typically 4, 5 and 6 full cycles) so you can pick between more sleep or an earlier end time depending on what your schedule allows.",
+      ],
+      faq: [
+        {
+          q: "Why does this use 90-minute cycles instead of just 8 hours?",
+          a: "Sleep isn't uniform — it moves through repeating cycles of roughly 90 minutes, and waking up between cycles rather than in the middle of one is generally associated with feeling more rested, even if the total hours differ slightly from a round 8.",
+        },
+        {
+          q: "Why is there a 15-minute buffer added before the cycles start?",
+          a: "It accounts for typical sleep latency — the average time it takes a person to actually fall asleep after getting into bed. Skipping that buffer would slightly overestimate how much cycle-aligned sleep you'd actually get by your wake-up time.",
+        },
+        {
+          q: "Is 4 cycles (6 hours) of sleep enough?",
+          a: "It's on the low end of what's generally recommended for adults, and is offered here mainly as the shortest cycle-aligned option when a full night isn't possible — most sleep guidelines recommend 5 to 6 full cycles (7.5 to 9 hours) for most adults on a regular basis.",
+        },
+        {
+          q: "Does everyone's sleep cycle last exactly 90 minutes?",
+          a: "90 minutes is a commonly used average, but actual cycle length varies somewhat by individual and even night to night — treat the options here as a solid general guideline rather than an exact personal measurement.",
+        },
+      ],
+    },
   },
   {
     slug: "roofing-calculator",
@@ -1060,6 +1777,35 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["square-footage-calculator", "tile-calculator"],
+    content: {
+      intro: [
+        "This calculator converts a roof's area into roofing squares — the unit roofers actually price and order material in — along with an estimated shingle bundle count, so you have real numbers before a materials run or a contractor quote.",
+        "It's used ahead of a reroofing project to estimate material cost, to sanity-check a contractor's quoted square count against the roof's actual measured area, or to plan a DIY shed or garage roof from scratch.",
+        "Roof area is trickier to measure than floor area since it includes slope, hips, valleys and ridge lines that a simple footprint measurement misses — this calculator assumes you're entering the actual roof surface area (not the building's footprint), with a waste factor built in to cover the cuts and overlaps that measurement alone won't catch.",
+      ],
+      howItWorks: [
+        "A roofing square is a standard unit equal to 100 square feet of roof surface — dividing total roof area by 100 gives the base square count. Adding a waste percentage on top accounts for material lost to angled cuts around hips, valleys and ridges, plus normal shingle overlap, both of which increase actual material needed beyond the roof's raw area.",
+        "Shingle bundles are estimated at roughly 3 bundles per square, which is standard for most architectural and 3-tab asphalt shingles, though some heavier or specialty shingle products may require a different bundle-per-square ratio — check the product packaging for the exact coverage rate.",
+      ],
+      faq: [
+        {
+          q: "What's a typical waste factor for a roofing project?",
+          a: "10% is a common default for a straightforward gable roof; more complex rooflines with lots of hips, valleys, dormers or a steep pitch often warrant 15% or more to cover the extra angled cuts those features require.",
+        },
+        {
+          q: "How many shingle bundles come in a square?",
+          a: "Most standard asphalt shingles are packaged 3 bundles to a square (100 sq ft), which is the ratio this calculator uses — but always confirm against the specific product's packaging, since some heavier or specialty shingles use a different bundle count per square.",
+        },
+        {
+          q: "How do I measure roof area if I can't get on the roof?",
+          a: "Satellite measurement tools, a contractor's roof measurement report, or measuring the building's footprint and multiplying by a pitch-based multiplier are all common approaches — a steeper roof has meaningfully more actual surface area than its footprint alone suggests.",
+        },
+        {
+          q: "Should I order extra beyond the calculated bundle count?",
+          a: "Rounding up to the next full bundle (which the calculator already does) plus keeping the waste factor generous for a complex roof is usually enough — running short mid-project, especially on a specific shingle color batch, is more costly than having a spare bundle or two on hand.",
+        },
+      ],
+    },
   },
   {
     slug: "tile-calculator",
@@ -1091,6 +1837,35 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["square-footage-calculator", "roofing-calculator"],
+    content: {
+      intro: [
+        "This calculator works out how many tiles a floor or wall job needs, based on room dimensions, individual tile size, and a waste allowance for cuts and breakage — the number to have before standing in a tile aisle guessing at boxes.",
+        "It's used before a bathroom, kitchen backsplash, or flooring retile — sizing a materials order so you buy enough in one trip without wildly overbuying, especially useful since tile is sold by the box and running short mid-job on a specific batch or dye lot can mean a mismatched replacement.",
+        "Enter the room's length and width along with the individual tile's dimensions, and it converts everything to a common unit before dividing — plus a waste percentage on top for the pieces lost to edge cuts and the occasional cracked tile.",
+      ],
+      howItWorks: [
+        "Room area (length × width, in square feet) is divided by each tile's area (converted from inches to square feet by multiplying tile length × width and dividing by 144) to get the base number of tiles needed to cover the floor with no cuts or breakage.",
+        "The waste percentage is added on top of that base count to cover tiles cut at the edges of the room (which rarely use a full tile) and the inevitable breakage that happens during cutting and installation — skipping this allowance is a common reason DIY tile jobs come up short right at the finish line.",
+      ],
+      faq: [
+        {
+          q: "How much waste allowance should I add for tile?",
+          a: "10% is a reasonable default for a simple rectangular room laid in a straight pattern; more complex layouts (diagonal patterns, herringbone, lots of corners or fixtures to cut around) commonly need 15% or more.",
+        },
+        {
+          q: "Should I round the tile count up to full boxes?",
+          a: "Yes — tile is sold by the box, and this calculator's result is the raw tile count. Check how many tiles come per box from the product you're buying and round up to the next full box, since buying loose individual tiles usually isn't an option.",
+        },
+        {
+          q: "Does grout line width affect how many tiles I need?",
+          a: "Not significantly for the tile count itself — grout lines take up a small amount of space between tiles, but the effect on total tile count is minor compared to the waste factor for cuts. It matters more for grout quantity than for tile quantity.",
+        },
+        {
+          q: "What if my room isn't a perfect rectangle?",
+          a: "Split the room into rectangular sections, run each through the calculator separately, and add the tile counts together — that keeps the area math accurate for irregular layouts like L-shaped bathrooms or rooms with alcoves.",
+        },
+      ],
+    },
   },
   {
     slug: "mulch-calculator",
@@ -1122,6 +1897,34 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["gravel-calculator", "concrete-calculator"],
+    content: {
+      intro: [
+        "This calculator converts a garden bed's area and desired mulch depth into cubic yards, plus the equivalent number of standard 2-cubic-foot bags — the two ways mulch is actually sold, whether you're having it delivered in bulk or hauling bags from a garden center.",
+        "It's used every spring or fall when refreshing garden beds, when planning a new landscaping bed from scratch, or when trying to decide whether a bulk delivery is worth it versus a trunk full of bagged mulch for a smaller area.",
+        "Enter the bed's square footage and how deep you want the mulch layer, and it returns both the bulk cubic-yard figure and the bagged equivalent side by side, so you can buy however suits the job.",
+      ],
+      howItWorks: [
+        "Cubic yards are calculated as area (in square feet) times depth (converted from inches to feet by dividing by 12), divided by 27 — since a cubic yard equals 27 cubic feet (3 ft × 3 ft × 3 ft). That same total volume in cubic feet, divided by 2, gives the number of standard 2-cubic-foot bags.",
+      ],
+      faq: [
+        {
+          q: "How deep should mulch be applied?",
+          a: "2 to 3 inches is the commonly recommended depth for most garden beds — enough to suppress weeds and retain soil moisture without smothering plant roots or trapping excess moisture against stems and trunks.",
+        },
+        {
+          q: "Is bulk mulch or bagged mulch cheaper?",
+          a: "Bulk mulch is typically cheaper per cubic yard for larger areas, since you're not paying for bagging, but most suppliers have a delivery minimum that makes bulk impractical for small beds — bagged mulch is usually more cost-effective and convenient below roughly 2-3 cubic yards.",
+        },
+        {
+          q: "Do I need to remove old mulch before adding new mulch?",
+          a: "Not usually — a fresh layer on top of old, mostly-decomposed mulch is standard practice. If old mulch has built up to more than 3-4 inches total, raking some out first helps avoid smothering roots or creating excessive moisture retention against the soil.",
+        },
+        {
+          q: "How often should garden beds be re-mulched?",
+          a: "Once a year is typical for most organic mulches, since they break down and settle over time — though a thin top-up rather than a full fresh layer is often enough if the existing mulch hasn't fully decomposed.",
+        },
+      ],
+    },
   },
   {
     slug: "gravel-calculator",
@@ -1153,6 +1956,34 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["mulch-calculator", "concrete-calculator"],
+    content: {
+      intro: [
+        "This calculator converts a driveway, path or base layer's area and depth into cubic yards of gravel, plus the approximate weight in tons — the two numbers that matter when you're getting quotes, since gravel suppliers typically sell and deliver by weight even though you're planning the job by volume.",
+        "It's used for sizing a new driveway base, refreshing a gravel path, or backfilling a drainage trench — anywhere a layer of crushed stone or gravel needs to cover a known area at a known depth.",
+        "Enter the area and how deep you want the gravel layer, and it returns both the volume and the estimated tonnage so you're not caught off guard by a supplier quoting in a different unit than you were expecting.",
+      ],
+      howItWorks: [
+        "Volume in cubic yards is area (in square feet) times depth (converted from inches to feet), divided by 27 cubic feet per cubic yard. Weight is then estimated by multiplying cubic yards by roughly 1.4 tons per cubic yard — a typical density for common crushed gravel, though the exact figure varies somewhat by material type and how tightly it's compacted.",
+      ],
+      faq: [
+        {
+          q: "How deep should a gravel driveway base be?",
+          a: "4 to 6 inches is a common depth for a base layer under a driveway, sometimes built up in multiple compacted layers for better stability; a decorative gravel path on top of existing ground can often get by with 2 to 3 inches.",
+        },
+        {
+          q: "Why does gravel weight vary — is 1.4 tons per cubic yard always accurate?",
+          a: "It's a reasonable average for common crushed gravel, but actual weight varies by material (river rock, crushed limestone, pea gravel) and by how compacted it is — for a large or expensive order, it's worth confirming the specific product's density with your supplier.",
+        },
+        {
+          q: "Should I compact the gravel before calculating the finished depth?",
+          a: "Loose gravel compacts down somewhat once driven or walked on, so ordering slightly more than the bare finished-depth calculation — or accounting for compaction in the depth you enter — helps avoid ending up with a thinner layer than planned.",
+        },
+        {
+          q: "Do I need a landscape fabric layer under gravel?",
+          a: "It's commonly recommended under driveways and paths to prevent the gravel from sinking into the soil over time and to reduce weed growth — it doesn't change the gravel volume calculation itself, but it's worth budgeting for separately.",
+        },
+      ],
+    },
   },
   {
     slug: "wind-chill-calculator",
@@ -1189,6 +2020,35 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["heat-index-calculator", "dew-point-calculator"],
+    content: {
+      intro: [
+        "This calculator works out wind chill — how much colder moving air makes cold weather actually feel on exposed skin — using the official National Weather Service formula, from just an air temperature and wind speed.",
+        "It's checked before heading outside in winter weather: deciding how many layers a cold, windy commute actually calls for, judging frostbite risk before outdoor work or sports, or just understanding why a forecast's \"feels like\" temperature reads so much colder than the actual air temperature.",
+        "Wind strips away the thin layer of warmed air that naturally clings to skin, which is why the same air temperature can feel dramatically colder on a windy day than a still one — this calculator quantifies exactly how much colder.",
+      ],
+      howItWorks: [
+        "The National Weather Service wind chill formula combines air temperature and wind speed (raised to the 0.16 power, reflecting that the cooling effect of wind increases quickly at first but levels off at higher speeds) into a single \"feels like\" temperature. It's only valid for temperatures at or below 50°F and wind speeds of 3 mph or more — outside that range, wind chill isn't a meaningful or accurate measure.",
+        "The frostbite risk zones shown are based on NWS guidance for how quickly frostbite can set in on exposed skin at a given wind chill value — the colder the reading, the less time it takes for frostbite risk to become significant.",
+      ],
+      faq: [
+        {
+          q: "How fast can frostbite occur in extreme wind chill?",
+          a: "At wind chills in the extreme range (around -35°F or colder), frostbite on exposed skin can occur in under 5 minutes according to NWS guidance — which is why extreme wind chill warnings are taken seriously for anyone spending time outdoors.",
+        },
+        {
+          q: "Why doesn't wind chill apply above 50°F?",
+          a: "The wind chill formula specifically models how wind accelerates heat loss from skin in cold conditions — above 50°F, the body isn't losing heat fast enough for wind to meaningfully change the perceived temperature the same way, so the NWS formula isn't calibrated for that range.",
+        },
+        {
+          q: "Does wind chill affect inanimate objects, like car engines or pipes?",
+          a: "No — wind chill specifically measures how cold moving air feels on living skin due to accelerated heat loss from a body generating its own warmth. Non-living objects cool to the actual air temperature regardless of wind, not to the wind chill value.",
+        },
+        {
+          q: "What wind speed should I use if forecasts show gusts and sustained wind separately?",
+          a: "Sustained wind speed is the standard input for wind chill calculations, since it reflects ongoing conditions rather than brief gusts — using gust speed would overstate the wind chill for most of the time you're actually outside.",
+        },
+      ],
+    },
   },
   {
     slug: "heat-index-calculator",
@@ -1226,6 +2086,35 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["wind-chill-calculator", "dew-point-calculator"],
+    content: {
+      intro: [
+        "This calculator works out the heat index — how much hotter humid air actually feels compared to the thermometer reading — using the National Weather Service's Rothfusz regression formula, from air temperature and relative humidity.",
+        "It's used to judge real heat risk before outdoor work, sports practice, or events in hot weather, since humidity is what makes heat genuinely dangerous rather than just uncomfortable — the same air temperature can range from tolerable to hazardous depending on how much moisture is in the air.",
+        "High humidity blocks sweat from evaporating efficiently, which is the body's main cooling mechanism — this calculator quantifies exactly how much that effect raises the perceived (and physiologically felt) temperature.",
+      ],
+      howItWorks: [
+        "The Rothfusz regression is a statistical formula developed by the National Weather Service that combines air temperature and relative humidity into a single \"feels like\" figure, fitted from actual data on how humans perceive combined heat and humidity. It's most accurate for temperatures at or above 80°F and humidity at or above 40%, which is the range it was calibrated against.",
+        "The risk categories (Caution, Extreme Caution, Danger, Extreme Danger) reflect NWS guidance on the likelihood of heat-related illness — sunstroke, heat cramps, heat exhaustion — at sustained exposure to a given heat index value, with risk increasing sharply as the number climbs.",
+      ],
+      faq: [
+        {
+          q: "Why does high humidity make heat feel so much worse?",
+          a: "Sweat evaporating off skin is the body's primary cooling mechanism, and high humidity slows that evaporation dramatically — so on a humid day, sweat lingers on the skin without cooling you nearly as effectively, making the same air temperature feel significantly hotter.",
+        },
+        {
+          q: "What's a dangerous heat index level?",
+          a: "The NWS \"Danger\" category starts around 103°F, where heat cramps and heat exhaustion become likely with continued exposure or physical activity, and \"Extreme Danger\" above roughly 125°F carries a high risk of heat stroke — both warrant limiting outdoor exposure and activity.",
+        },
+        {
+          q: "Is heat index the same as the temperature shown on a weather app?",
+          a: "No — the plain temperature is just the air reading, while heat index (often labeled \"feels like\" or \"real feel\") factors in humidity's effect on perceived heat. On a humid day the two numbers can differ substantially.",
+        },
+        {
+          q: "Does heat index account for direct sunlight?",
+          a: "No — the standard heat index formula assumes shade. Direct sun exposure can add significantly to how hot conditions actually feel and to real heat stress on the body, beyond what the heat index number alone suggests.",
+        },
+      ],
+    },
   },
   {
     slug: "dew-point-calculator",
@@ -1266,6 +2155,35 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["heat-index-calculator", "wind-chill-calculator"],
+    content: {
+      intro: [
+        "This calculator finds the dew point — the temperature air would need to cool to for it to become saturated with the moisture already in it — from air temperature and relative humidity, using the Magnus formula meteorologists rely on for this exact conversion.",
+        "Weather-watchers, pilots, and anyone deciding how muggy a day will actually feel use dew point because, unlike relative humidity, it doesn't swing up and down with temperature over the course of a day — it's a much more consistent read on how much moisture is actually in the air.",
+        "It also comes up in HVAC and building contexts, since dew point relative to a surface temperature determines whether condensation will form — a practical concern for anything from cold drinks sweating on a table to moisture forming inside walls or on windows.",
+      ],
+      howItWorks: [
+        "The Magnus formula relates temperature and relative humidity to dew point through an empirical approximation of the physics of water vapor saturation — the calculator converts your Fahrenheit input to Celsius, applies the formula, then converts the result back to Fahrenheit for display.",
+        "The key distinction from relative humidity: relative humidity is a percentage relative to what the current air temperature can hold, so it changes constantly as temperature rises and falls through the day even if the actual moisture content stays the same. Dew point measures the actual moisture content directly, which is why meteorologists consider it the more reliable comfort indicator.",
+      ],
+      faq: [
+        {
+          q: "Why is dew point a better comfort indicator than relative humidity?",
+          a: "Relative humidity depends on temperature — the same amount of moisture in the air produces a different relative humidity reading depending on how hot or cold it is. Dew point measures actual moisture content directly, so a dew point in the 60s reliably feels humid whether the air temperature is 75°F or 95°F.",
+        },
+        {
+          q: "What dew point is considered comfortable?",
+          a: "Dew points below 60°F are generally considered comfortable, 60-65°F starts to feel slightly humid, and anything above 70°F is widely considered oppressive — meteorologists commonly use these rough bands, which is why the gauge above is scaled the same way.",
+        },
+        {
+          q: "Can the dew point be higher than the air temperature?",
+          a: "No — dew point can equal air temperature (at 100% relative humidity, when the air is fully saturated) but never exceed it, since dew point represents the temperature air would need to cool to in order to reach saturation with its current moisture content.",
+        },
+        {
+          q: "Why does condensation form on a cold glass but not a warm one?",
+          a: "Condensation forms whenever a surface is colder than the surrounding air's dew point — a cold glass often sits below the outdoor dew point on a humid day, causing moisture from the air to condense on its surface, which is exactly why glasses \"sweat\" in humid weather.",
+        },
+      ],
+    },
   },
   {
     slug: "bandwidth-calculator",
@@ -1298,6 +2216,35 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: [],
+    content: {
+      intro: [
+        "This calculator estimates how long a file will take to download given its size and your connection speed — a genuinely confusing conversion since file sizes are measured in bytes (MB, GB) while connection speeds are almost always advertised in bits (Mbps, Kbps).",
+        "It comes up when checking whether a large game download or software update will finish before you need to leave, when comparing internet plans by what they'd actually mean for a typical download, or just double-checking why an advertised \"100 Mbps\" connection doesn't download a 100 MB file in one second.",
+        "Pick your file size unit and connection speed unit independently, and the calculator handles the bits-to-bytes conversion internally so you don't have to do the math by hand.",
+      ],
+      howItWorks: [
+        "The most common source of confusion here is that file sizes are measured in bytes, but internet speeds are marketed in bits — and there are 8 bits in a byte. A \"100 Mbps\" connection transfers about 12.5 megabytes per second, not 100 megabytes per second, which catches a lot of people off guard when a download takes far longer than the advertised speed number implies.",
+        "The calculator converts your file size to bits (multiplying by 8) and your connection speed to bits per second, then divides one by the other to get download time in seconds — this is a theoretical best case, since it assumes your connection sustains its full advertised speed for the entire download with no overhead or contention.",
+      ],
+      faq: [
+        {
+          q: "Why is my download slower than my internet plan's advertised speed suggests?",
+          a: "Advertised speeds are almost always in megabits per second (Mbps), while file sizes and download progress bars show megabytes (MB) — since there are 8 bits per byte, a 100 Mbps connection tops out around 12.5 MB per second, not 100 MB per second, which is often the real explanation.",
+        },
+        {
+          q: "What's the difference between Mbps and MBps?",
+          a: "Mbps (lowercase b) is megabits per second, the unit internet speeds are marketed in. MBps (uppercase B) is megabytes per second, the unit download managers and file sizes use. Dividing Mbps by 8 gives you the roughly equivalent MBps figure.",
+        },
+        {
+          q: "Why does my actual download take longer than this calculator predicts?",
+          a: "This estimate assumes your connection sustains its full advertised speed the entire time, with no other devices competing for bandwidth and no server-side bottleneck. Real downloads are affected by network congestion, Wi-Fi signal strength, and the download server's own speed limits — all of which this calculator doesn't account for.",
+        },
+        {
+          q: "How much faster is a wired connection than Wi-Fi for large downloads?",
+          a: "It depends heavily on your specific Wi-Fi setup and signal strength, but a wired Ethernet connection generally delivers closer to your plan's actual advertised speed with less variability than Wi-Fi, which can be affected by distance, interference, and how many devices share the network.",
+        },
+      ],
+    },
   },
   {
     slug: "base64-encode-decode",
@@ -1336,6 +2283,35 @@ const everyday2: CalculatorDefinition[] = [
       }
     },
     relatedSlugs: ["url-encode-decode"],
+    content: {
+      intro: [
+        "This tool encodes plain text into Base64, or decodes a Base64 string back into readable text — a conversion developers run constantly when working with data formats that don't handle raw binary or special characters cleanly.",
+        "It's used for embedding small binary data (like an image) inside JSON or a URL, decoding a Base64-encoded JWT payload or API token to see what's inside, preparing email attachment data, or just reading a Base64 string someone pasted into a bug report or config file.",
+        "Since encoding and decoding both happen entirely in your browser, it's a safe place to paste something you're not sure is sensitive — an API key or auth token fragment, for instance — without it ever leaving your device.",
+      ],
+      howItWorks: [
+        "Base64 represents binary data using only 64 printable ASCII characters (A-Z, a-z, 0-9, plus two symbols), which makes it safe to embed inside text-based formats like JSON, XML or URLs that don't reliably handle raw binary or every special character.",
+        "The encoding works by packing 3 bytes of input into 4 Base64 characters, which is why encoded output runs roughly 33% longer than the original — that expansion is the tradeoff for making the data universally text-safe.",
+      ],
+      faq: [
+        {
+          q: "Is Base64 encoding a form of encryption?",
+          a: "No — Base64 is purely a data representation format, not encryption. It doesn't hide or protect information at all; anyone can decode it instantly, so it should never be used as a substitute for actual encryption when handling sensitive data.",
+        },
+        {
+          q: "Why does encoded text always come out longer than the original?",
+          a: "Base64 packs every 3 bytes of input into 4 output characters, which mathematically expands the size by about 33% — that overhead is the tradeoff for representing arbitrary binary data using only safe, printable text characters.",
+        },
+        {
+          q: "Why do I sometimes see a Base64 string end with one or two equals signs?",
+          a: "Equals signs are padding characters, added when the input's length isn't a multiple of 3 bytes — they let the decoder know the final group of characters represents fewer than the usual 3 bytes of original data.",
+        },
+        {
+          q: "What is Base64 commonly used for?",
+          a: "Embedding image or file data directly inside HTML, CSS or JSON; encoding email attachments (MIME); representing the payload sections of JWTs (JSON Web Tokens) used in authentication; and any other context where binary or special-character data needs to travel safely through a text-only channel.",
+        },
+      ],
+    },
   },
   {
     slug: "url-encode-decode",
@@ -1376,6 +2352,35 @@ const everyday2: CalculatorDefinition[] = [
       }
     },
     relatedSlugs: ["base64-encode-decode"],
+    content: {
+      intro: [
+        "This tool URL-encodes text so it's safe to include in a web address or query string, or decodes a percent-encoded URL string back into its original readable form — the encoding scheme behind those %20s and %26s you see scattered through URLs.",
+        "It's used by developers building query strings by hand, by anyone trying to read what a long tracking or redirect URL actually says once the percent-encoding is stripped away, or when debugging why a link with spaces or special characters isn't working as expected.",
+        "The conversion runs entirely in your browser using the same encoding logic web browsers themselves use, so pasting in a URL fragment to decode is safe and nothing is sent anywhere.",
+      ],
+      howItWorks: [
+        "Certain characters — spaces, ampersands, question marks, hashes, and others — have special meaning inside a URL and can't appear literally in most parts of it without causing confusion about where the URL structure ends and the actual data begins. Percent-encoding replaces each unsafe character with a % followed by its two-digit hexadecimal code (a space becomes %20, an ampersand becomes %26, and so on).",
+        "This lets arbitrary text — including spaces, punctuation, and non-ASCII characters — travel safely inside a URL's query string or path without breaking the URL's own syntax, since the decoder on the receiving end reverses the process to recover the original text.",
+      ],
+      faq: [
+        {
+          q: "Why do spaces in a URL show up as %20 or a plus sign?",
+          a: "%20 is the standard percent-encoded representation of a space. A plus sign (+) is an older convention specifically used inside URL query strings (and form submissions) to represent a space — both are valid depending on context, though %20 is the more universally correct form.",
+        },
+        {
+          q: "Which characters need to be URL-encoded?",
+          a: "Reserved characters with special meaning in URL syntax — spaces, &, ?, #, %, /, and others — along with non-ASCII characters generally need encoding. Letters, numbers, and a handful of symbols like hyphens and periods are considered safe and left as-is.",
+        },
+        {
+          q: "Why does decoding sometimes fail with an error?",
+          a: "Decoding fails when the input contains a % that isn't followed by a valid two-digit hex code, or when it isn't correctly formed percent-encoded text to begin with — often the sign of a string that was only partially encoded or has been modified since it was originally encoded.",
+        },
+        {
+          q: "Is URL encoding the same thing as encryption?",
+          a: "No — URL encoding is purely a way to safely represent characters within URL syntax, not a security measure. It's trivially reversible by anyone, so it should never be relied on to hide or protect sensitive information.",
+        },
+      ],
+    },
   },
   {
     slug: "shoe-size-conversion",
@@ -1411,6 +2416,34 @@ const everyday2: CalculatorDefinition[] = [
       };
     },
     relatedSlugs: ["bra-size-calculator"],
+    content: {
+      intro: [
+        "This calculator converts a US men's shoe size into US women's, UK and EU sizes, plus an estimated foot length in centimeters — the reference chart you need when a shoe you're buying only lists sizes in a system you don't normally shop in.",
+        "It's used when ordering shoes from an international retailer that lists only UK or EU sizes, when buying a unisex or men's shoe as a woman (or vice versa) and needing the size offset, or when a size chart online only gives a foot-length measurement to match against.",
+        "Enter a US men's size and it fills in the equivalent sizes across every other common system at once, so you're not hunting down a separate conversion for each one.",
+      ],
+      howItWorks: [
+        "Each sizing system is derived from the US men's size using standard offsets: US women's runs about 1.5 sizes larger numerically than the equivalent US men's size, UK sizing runs about 0.5 smaller, and EU sizing adds roughly 33 to the US men's number. Foot length in centimeters is estimated from the same base size using a standard length-per-size scale.",
+      ],
+      faq: [
+        {
+          q: "How much bigger is a women's shoe size than the equivalent men's size?",
+          a: "US women's sizing typically runs about 1.5 sizes larger numerically than the equivalent US men's size — for example, a men's size 9 is roughly equivalent to a women's 10.5. It's an approximate offset used widely in the shoe industry, though not universal across every brand.",
+        },
+        {
+          q: "Why do my actual shoe sizes not exactly match this conversion?",
+          a: "Sizing conventions vary meaningfully by brand and by the specific shoe's last (its shape template) — this calculator gives a standard approximate conversion, but the safest way to confirm fit for a specific pair is to measure your actual foot length and compare it against that brand's own size chart.",
+        },
+        {
+          q: "How do I measure my foot length at home?",
+          a: "Stand on a piece of paper with your heel against a wall, mark where your longest toe ends, and measure that distance in centimeters — comparing that number against a brand's foot-length chart is generally more reliable than converting between size systems alone.",
+        },
+        {
+          q: "Is EU sizing the same across all of Europe?",
+          a: "EU sizing is broadly standardized and used across most of continental Europe, making it one of the more consistent systems — but as with any conversion, individual brands can still vary slightly in exactly how a given EU size is cut.",
+        },
+      ],
+    },
   },
 ];
 
